@@ -9,19 +9,23 @@ import math
 import sqlite3
 from sqlalchemy import or_
 
-import os
-from flask import Flask
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "super-secret")
+if DATABASE_URL:
+    # Render/Neon/Supabase style
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+else:
+    # Local/dev fallback: SQLite
+    DB_DIR = "/opt/render/project/src/data" if os.getenv("RENDER") else "."
+    os.makedirs(DB_DIR, exist_ok=True)
+    DB_PATH = os.path.join(DB_DIR, "sasyanova.db")
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.abspath(DB_PATH)}"
 
-# --- Use a writable directory on Render Free Plan ---
-DB_DIR = "/opt/render/project/src/data" if os.getenv("RENDER") else "."
-os.makedirs(DB_DIR, exist_ok=True)
-
-DB_PATH = os.path.join(DB_DIR, "sasyanova.db")
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.abspath(DB_PATH)}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
