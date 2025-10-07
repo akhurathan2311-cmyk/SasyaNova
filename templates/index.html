@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SasyaNova — Hyperlocal Quick-Commerce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#6c2bd9; --brand-2:#f1e8ff; --ink:#111827; --muted:#6b7280;
+    --bg:#faf8ff; --card:#ffffff; --ok:#16a34a; --warn:#f59e0b; --danger:#ef4444;
+    --radius:16px; --shadow:0 8px 28px rgba(17,24,39,.08);
+    --border:#eee;
+  }
+  body.dark{
+    --bg:#111827; --ink:#f9fafb; --muted:#9ca3af; --card:#1f2937;
+    --brand-2:#312e81; --shadow:0 8px 28px rgba(0,0,0,.6);
+    --border:#2b2f3a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;min-height:100vh}
+  button{font-family:inherit;cursor:pointer}
+  .container{max-width:1200px;margin:0 auto;padding:12px 16px}
+  .row{display:flex;align-items:center}
+  .between{justify-content:space-between}
+  .gap8{gap:8px}
+
+  /* Topbar */
+  .topbar{position:sticky;top:0;z-index:50;background:var(--card);border-bottom:1px solid var(--border)}
+  .brand{font-weight:800;font-size:22px;display:flex;gap:8px}
+  .brand-badge{background:var(--brand-2);color:var(--brand);padding:4px 10px;border-radius:999px;font-weight:700}
+  .searchbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:999px;padding:10px 14px;min-width:420px;box-shadow:var(--shadow)}
+  .searchbar input{border:0;outline:0;width:100%;background:transparent;color:var(--ink)}
+  .icon-btn{border:1px solid var(--border);background:var(--card);border-radius:12px;padding:8px 12px}
+  .cta-login{background:var(--brand);color:#fff;border:0;border-radius:12px;padding:10px 14px;font-weight:700;text-decoration:none;display:inline-block}
+
+  /* Category strip */
+  .catbar{background:var(--card);border-bottom:1px solid var(--border)}
+  .cats{display:flex;gap:14px;overflow:auto;padding:10px 0;scroll-snap-type:x mandatory}
+  .cat{flex:0 0 auto;scroll-snap-align:start;width:120px;border:1px solid var(--border);border-radius:18px;background:var(--card);box-shadow:var(--shadow);text-align:center;cursor:pointer}
+  .cat img{width:100%;height:84px;object-fit:cover;border-top-left-radius:18px;border-top-right-radius:18px}
+  .cat div{padding:8px 6px;font-weight:700;font-size:13px}
+  .cat.active{outline:2px solid var(--brand)}
+
+  /* Hero */
+  .hero{margin-top:20px;text-align:center}
+  .controls{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+  .input{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 12px;min-width:260px}
+  .input input{border:0;outline:0;background:transparent;color:var(--ink);width:100%}
+  .btn{background:#111827;color:#fff;border:0;border-radius:12px;padding:10px 14px;font-weight:700}
+  .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--border)}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:60}
+  .modal.show{display:flex}
+  .sheet{background:var(--card);color:var(--ink);border-radius:16px;padding:16px;max-width:500px;width:100%;box-shadow:var(--shadow)}
+  .sheet input,.sheet select{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--ink);margin-bottom:10px}
+
+  /* Product grid (simple demo tiles) */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-top:20px}
+  .tile{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .tile img{width:100%;height:120px;object-fit:cover}
+  .tile .body{padding:10px}
+  .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="container row between">
+    <div class="brand">🌾 SasyaNova <span class="brand-badge">Quick • 10–30 min</span></div>
+    <div class="searchbar">🔎 <input id="searchInput" placeholder='Search for "mango", "rice"...'></div>
+    <div class="row gap8">
+      <button class="icon-btn" id="darkToggle" aria-label="Toggle theme" type="button">🌙</button>
+      <button class="icon-btn" id="addressBtn" title="Add Address" type="button">📍</button>
+      <a href="{{ url_for('login') }}" class="cta-login">Login</a>
+      <a href="{{ url_for('register') }}" class="cta-login" style="background:#10b981">Register</a>
+    </div>
+  </div>
+</div>
+
+<!-- CATEGORY STRIP -->
+<div class="catbar">
+  <div class="container">
+    <div class="cats" id="catStrip"></div>
+  </div>
+</div>
+
+<!-- HERO + PIN -->
+<div class="container">
+  <div class="hero">
+    <h2>Products in My Area</h2>
+    <p>Fresh from <b>Annachi Kaadai</b> & Farmers.</p>
+    <div class="controls">
+      <div class="input">📍
+        <input id="pinInput" maxlength="6" placeholder="Enter 6-digit pincode">
+      </div>
+      <button class="btn" id="applyPin" type="button">Show</button>
+      <button class="btn ghost" id="clearPin" type="button">Clear</button>
+    </div>
+
+    <p id="pinHint" class="muted" style="margin-top:8px"></p>
+  </div>
+
+  <!-- Where items will render -->
+  <div id="productGrid" class="grid"></div>
+</div>
+
+<!-- ADDRESS MODAL -->
+<div class="modal" id="addrModal">
+  <div class="sheet">
+    <h3>Save Address</h3>
+    <form id="addrForm">
+      <input type="text" id="addrName" placeholder="Label (Home / Work / Other)" required>
+      <input type="text" id="addrLine" placeholder="Address Line" required>
+      <input type="text" id="addrPin" placeholder="Pincode (6 digits)" pattern="[0-9]{6}" maxlength="6" required>
+      <input type="text" id="addrPhone" placeholder="Phone (10 digits)" pattern="[0-9]{10}" maxlength="10" required>
+      <button type="submit" class="btn" style="width:100%">Save</button>
+      <button type="button" class="btn ghost" style="width:100%;margin-top:6px" onclick="toggleAddr(false)">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ---------- THEME ---------- */
+const THEME_KEY="SN_THEME";
+function applyTheme(mode){
+  document.body.classList.toggle("dark", mode==="dark");
+  const btn=document.getElementById("darkToggle");
+  btn.textContent = mode==="dark" ? "☀️" : "🌙";
+  btn.setAttribute("aria-label", mode==="dark" ? "Switch to light mode" : "Switch to dark mode");
+}
+(function(){
+  applyTheme(localStorage.getItem(THEME_KEY) || "light");
+  // Make sure modal is hidden (prevents “half page visible” overlay)
+  document.getElementById("addrModal").classList.remove("show");
+})();
+document.getElementById("darkToggle").onclick=()=>{
+  const mode=document.body.classList.contains("dark")?"light":"dark";
+  localStorage.setItem(THEME_KEY,mode); applyTheme(mode);
+};
+
+/* ---------- CATEGORY STRIP ---------- */
+const categories=[
+  {key:"all",label:"All",img:"https://images.unsplash.com/photo-1526318472351-c75fcf070305?q=80&w=600&auto=format"},
+  {key:"cereals",label:"Cereals",img:"https://images.unsplash.com/photo-1547056962-129d9f7f9b4a?q=80&w=600&auto=format"},
+  {key:"fruits",label:"Fruits",img:"https://images.unsplash.com/photo-1571772805064-207c8435df79?q=80&w=600&auto=format"},
+  {key:"vegetables",label:"Vegetables",img:"https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=600&auto=format"},
+];
+let currentCat="all";
+function renderCatStrip(active="all"){
+  const wrap=document.getElementById("catStrip"); wrap.innerHTML="";
+  categories.forEach(c=>{
+    const el=document.createElement("div");
+    el.className="cat"+(c.key===active?" active":"");
+    el.innerHTML=`<img src="${c.img}" alt="${c.label}"><div>${c.label}</div>`;
+    el.onclick=()=>{currentCat=c.key; renderCatStrip(c.key); if(currentPin) loadProducts(currentPin,currentCat);};
+    wrap.appendChild(el);
+  });
+}
+renderCatStrip();
+
+/* ---------- PINCODE HANDLING ---------- */
+const hint=document.getElementById("pinHint");
+const grid=document.getElementById("productGrid");
+let currentPin = localStorage.getItem("SN_PIN") || "";
+
+function showHint(){
+  hint.textContent = currentPin ? `Delivering to pincode ${currentPin}` : "Enter a pincode to view items in your area.";
+}
+showHint();
+
+document.getElementById("applyPin").onclick=()=>{
+  const pin=document.getElementById("pinInput").value.trim();
+  if(!/^\d{6}$/.test(pin)){ alert("Enter a valid 6-digit pincode"); return; }
+  currentPin=pin; localStorage.setItem("SN_PIN", pin); showHint(); loadProducts(pin, currentCat);
+};
+document.getElementById("clearPin").onclick=()=>{
+  document.getElementById("pinInput").value=""; currentPin=""; localStorage.removeItem("SN_PIN"); showHint(); grid.innerHTML="";
+};
+
+/* ---------- ADDRESS MODAL ---------- */
+function toggleAddr(show){ document.getElementById("addrModal").classList.toggle("show", !!show); }
+document.getElementById("addressBtn").onclick=()=>toggleAddr(true);
+document.getElementById("addrForm").onsubmit=(e)=>{
+  e.preventDefault();
+  const pin=document.getElementById("addrPin").value.trim();
+  const phone=document.getElementById("addrPhone").value.trim();
+  if(!/^\d{6}$/.test(pin)){ alert("Enter a valid 6-digit pincode"); return; }
+  if(!/^\d{10}$/.test(phone)){ alert("Enter a valid 10-digit phone"); return; }
+  localStorage.setItem("SN_PIN", pin);
+  currentPin=pin; showHint(); toggleAddr(false); loadProducts(pin, currentCat);
+};
+
+/* ---------- AUTO-LOAD IF PIN SAVED ---------- */
+if(currentPin){
+  document.getElementById("pinInput").value=currentPin;
+  loadProducts(currentPin, currentCat);
+}
+
+/* ---------- LOAD PRODUCTS (API UNCHANGED) ---------- */
+async function loadProducts(pincode, category){
+  grid.innerHTML = "<div class='muted'>Loading…</div>";
+  try{
+    const res = await fetch(`/api/products/${pincode}/${category}`);
+    const items = await res.json();
+    grid.innerHTML = "";
+    if(!items.length){
+      grid.innerHTML = "<div class='muted'>No products in this area ❌</div>";
+      return;
+    }
+    items.forEach(p=>{
+      const card=document.createElement("div");
+      card.className="tile";
+      card.innerHTML=`
+        <img src="${p.image_url || 'https://via.placeholder.com/300x200'}" alt="${p.name}">
+        <div class="body">
+          <div style="font-weight:700">${p.name}</div>
+          <div class="muted">MRP: <s>₹${p.mrp}</s> • Price: ₹${p.price}</div>
+          <div class="muted">Stock: ${p.stock>0?p.stock:'Out of stock'}</div>
+        </div>`;
+      grid.appendChild(card);
+    });
+  }catch(e){
+    console.error(e);
+    grid.innerHTML = "<div class='muted'>Could not load products. Try again.</div>";
+  }
+}
+</script>
+</body>
+</html>

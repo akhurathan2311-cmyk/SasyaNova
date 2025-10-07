@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>SasyaNova — Annachi Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSRF token for Flask-WTF/Jinja (safe if undefined) -->
+  <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}"/>
+
+  <style>
+    :root {
+      --brand:#16a34a; --ink:#111827; --bg:#fafafa;
+      --card:rgba(255,255,255,0.9); --border:rgba(17,24,39,0.12);
+      --shadow:0 6px 20px rgba(17,24,39,.08); --muted:#6b7280; --glass-blur:12px;
+    }
+    body.dark {
+      --bg:#0f0f10; --ink:#f5f7fb; --card:rgba(25,25,28,0.75);
+      --border:rgba(255,255,255,0.14); --shadow:0 8px 30px rgba(0,0,0,.6);
+      --muted:#a1a1aa; --glass-blur:16px;
+    }
+    *{box-sizing:border-box}
+    body {margin:0; background:var(--bg); color:var(--ink); font-family:Inter, sans-serif;}
+    .container {max-width:1200px; margin:0 auto; padding:12px 16px}
+    .row {display:flex; align-items:center}
+    .between {justify-content:space-between}
+    .gap8 {gap:8px}
+    .gap12{gap:12px}
+
+    /* ---------- TOPBAR ---------- */
+    .topbar {
+      position:sticky; top:0; z-index:1000;
+      background:var(--card); border-bottom:1px solid var(--border);
+      backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+    }
+    .brand {font-weight:800; font-size:22px; display:flex; gap:8px}
+    .brand-badge {background:#dcfce7; color:var(--brand); padding:4px 10px; border-radius:999px; font-weight:700}
+    .icon-btn {border:1px solid var(--border); background:var(--card); border-radius:12px; padding:8px 12px; cursor:pointer; position:relative}
+    .cta {background:var(--brand); color:#fff; border:0; border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer}
+    .cta.out {background:transparent; color:var(--ink); border:1px solid var(--border)}
+    .cta.danger {background:#dc2626; color:#fff; border:0}
+
+    /* 🔔 badge for live button */
+    .badge-dot{
+      position:absolute; top:-4px; right:-4px; min-width:20px; height:20px; padding:0 6px;
+      background:#ef4444; color:#fff; border-radius:999px; font-size:12px; font-weight:800;
+      display:none; align-items:center; justify-content:center; border:2px solid(var(--card));
+    }
+    .badge-dot.show{display:inline-flex}
+
+    /* ---------- GRID ---------- */
+    .grid {display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; margin-top:20px}
+    @media(max-width:920px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    @media(max-width:680px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:420px){.grid{grid-template-columns:repeat(1,minmax(0,1fr))}}
+
+    .card {
+      background:var(--card); border:1px solid var(--border); border-radius:18px;
+      overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column;
+      transition:transform .2s, box-shadow .2s, border-color .2s; min-height:320px;
+      backdrop-filter: blur(calc(var(--glass-blur) - 2px)); -webkit-backdrop-filter: blur(calc(var(--glass-blur) - 2px));
+      position:relative;
+    }
+    .badge-discount{position:absolute; top:10px; left:10px; background:#dc2626; color:#fff; font-weight:800; font-size:12px; padding:4px 8px; border-radius:999px}
+    .badge-locked{position:absolute; top:10px; right:10px; background:#111827; color:#fff; font-weight:800; font-size:11px; padding:4px 8px; border-radius:999px; opacity:.85}
+    .card:hover{transform:translateY(-6px); box-shadow:0 12px 36px rgba(0,0,0,.20); border-color:rgba(22,163,74,.35)}
+    .card img{width:100%; height:160px; object-fit:cover}
+    .card .body{padding:12px; flex:1; display:flex; flex-direction:column}
+    .card .body b{font-weight:800; font-size:15px; margin-bottom:6px}
+    .card .meta{font-size:13px; margin-top:4px; color:var(--muted)}
+    .card .foot{padding:10px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; gap:6px; flex-wrap:wrap}
+    .card .foot form{display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px}
+    .card .foot input{padding:6px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--ink); width:100%}
+
+    /* ---------- PANELS ---------- */
+    .panel{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; box-shadow:var(--shadow);
+      backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));}
+
+    /* ---------- MODAL ---------- */
+    .modal{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:1100}
+    .modal.show{display:flex}
+    .sheet{background:var(--card); padding:22px; border-radius:20px; width:100%; max-width:560px; box-shadow:var(--shadow);
+      backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); border:1px solid var(--border);}
+    .sheet h3{margin:0 0 12px 0}
+    .sheet p{margin:8px 0 0; color:var(--muted)}
+
+    /* Add form helper row */
+    .mini{font-size:12px; color:var(--muted)}
+    .row-wrap{display:flex; gap:10px; flex-wrap:wrap}
+    .half{flex:1; min-width:160px}
+
+    /* ---------- TOAST ---------- */
+    .toast {
+      position:fixed; left:50%; transform:translateX(-50%); bottom:20px;
+      background:var(--card); border:1px solid var(--border); color:var(--ink);
+      padding:12px 16px; border-radius:12px; box-shadow:var(--shadow);
+      backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+      display:none; z-index:1200;
+    }
+    .toast.show{display:block; animation:fadeToast 2.2s ease forwards}
+    @keyframes fadeToast{0%{opacity:0; transform:translate(-50%,12px)} 12%{opacity:1; transform:translate(-50%,0)} 88%{opacity:1} 100%{opacity:0; transform:translate(-50%,-8px)}}
+
+    /* =============================== */
+    /* 🔥 LIVE ORDERS DRAWER COMPONENT */
+    /* =============================== */
+    .drawer-backdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; z-index:1300;
+    }
+    .drawer{
+      position:fixed; top:0; right:0; width:460px; max-width:100%; height:100vh; background:var(--card);
+      border-left:1px solid var(--border); box-shadow:var(--shadow); transform:translateX(100%);
+      transition:transform .22s ease; z-index:1310; overflow:auto;
+      backdrop-filter: blur(8px);
+    }
+    .drawer.open{ transform:translateX(0); }
+    .drawer-backdrop.open{ display:block; }
+    .drawer .head{
+      position:sticky; top:0; background:var(--card); border-bottom:1px solid var(--border);
+      padding:14px 16px; display:flex; align-items:center; justify-content:space-between;
+    }
+    .drawer .content{ padding:12px 14px; }
+    .small{font-size:12px; color:var(--muted)}
+    .olist{display:flex; flex-direction:column; gap:10px; margin-top:8px}
+
+    /* order/bundle cards */
+    .ocard{
+      border:1px solid var(--border); background:var(--card); border-radius:14px; padding:12px; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .oline{font-size:14px}
+    .otag{display:inline-flex; gap:6px; align-items:center; padding:2px 8px; border:1px solid var(--border); border-radius:999px; font-size:11px}
+    .oa{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+    .divider{height:1px; background:var(--border); margin:10px 0}
+    .close-btn{border:1px solid var(--border); background:transparent; border-radius:10px; padding:6px 10px; cursor:pointer}
+
+    /* bundle list */
+    .bundle-head{display:flex; align-items:center; justify-content:space-between}
+    .bundle-lines{display:flex; flex-direction:column; gap:6px; margin-top:4px}
+    .bundle-line{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center}
+    .bundle-meta{font-size:12px; color:var(--muted); display:flex; gap:8px; flex-wrap:wrap}
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="container row between">
+    <div class="brand">🌾 SasyaNova <span class="brand-badge">Annachi Kadai</span></div>
+    <div class="row gap8">
+      <button class="icon-btn" id="darkToggle">🌙</button>
+      <button class="icon-btn" id="liveBtn" title="Connect Live">🔔
+        <span class="badge-dot" id="liveBadge">0</span>
+      </button>
+      <button class="cta out" onclick="window.location.href='/'">Home</button>
+      <button class="cta" onclick="window.location.href='/logout'">Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="container">
+  <div class="row between" style="margin-top:20px">
+    <h2>📦 My Listings</h2>
+    <div class="row gap8">
+      <!-- NOTE: Catalog fixed by platform; this opens info modal -->
+      <button class="cta out" onclick="togglePolicy(true)">📄 Catalog Policy</button>
+      <button class="cta out" onclick="window.location.href='/dashboard/annachi/orders'">View Orders</button>
+    </div>
+  </div>
+
+  <!-- 🧭 LOCATION / RADIUS PANEL -->
+  <div class="panel" style="margin-top:14px">
+    <div class="row between" style="flex-wrap:wrap; gap:12px">
+      <div>
+        <h3 style="margin:0">🧭 My Shop Location & Radius</h3>
+        <div class="row gap8" style="color:var(--muted); margin-top:6px">
+          <span id="locInfo">Loading…</span>
+        </div>
+      </div>
+      <div class="row gap8" style="flex-wrap:wrap">
+        <button class="cta out" onclick="useMyGPS()">📡 Use My GPS</button>
+        <button class="cta" onclick="saveLocation()">💾 Save</button>
+      </div>
+    </div>
+    <div class="row gap12" style="margin-top:10px; flex-wrap:wrap">
+      <input id="shopLat" type="number" step="0.000001" placeholder="Latitude" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--ink)">
+      <input id="shopLng" type="number" step="0.000001" placeholder="Longitude" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--ink)">
+      <input id="shopPin" type="text" maxlength="6" placeholder="Pincode" pattern="[0-9]{6}" inputmode="numeric"
+             oninput="this.value=this.value.replace(/\D/g,'').slice(0,6)"
+             style="flex:1; padding:10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--ink)">
+      <input id="shopRad" type="number" min="1" step="1" placeholder="Service radius (km)" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:12px; background:transparent; color:var(--ink)">
+    </div>
+    <div class="row gap8" style="margin-top:8px; color:var(--muted); flex-wrap:wrap">
+      <span>Tip: Auto-assignment uses your GPS & radius to route nearby consumer orders to you.</span>
+    </div>
+  </div>
+
+  <!-- ✅ Products from DB: admin-locked price & image; Annachi edits stock only -->
+  <div class="grid">
+    {% for p in products %}
+      {% set disc = ( ( (p.mrp or 0) - (p.price or 0) ) / (p.mrp or 1) * 100 ) if p.mrp else 0 %}
+      <div class="card">
+        {% if disc>0 %}
+        <div class="badge-discount">-{{ (disc|round(0,'floor'))|int }}%</div>
+        {% endif %}
+        <div class="badge-locked">ADMIN-LOCKED</div>
+        <img src="{{ p.image_url or 'https://via.placeholder.com/300x200' }}" alt="{{ p.name }}">
+        <div class="body">
+          <b>{{ p.name }}</b>
+          <div class="meta">Category: {{ p.category or '-' }} • PIN: {{ p.pincode or '-' }}</div>
+          <div class="meta">MRP: <s>₹{{ p.mrp }}</s> | Price: ₹{{ p.price }}</div>
+          <div class="meta">Stock: {{ p.stock if p.stock > 0 else "Out of stock" }}</div>
+          <div class="meta">Total Purchased: {{ p.total_purchased or 0 }}</div>
+          <div class="mini" style="margin-top:6px">Prices & images are set by SasyaNova (admin). You can update <b>stock only</b>.</div>
+        </div>
+        <div class="foot">
+          <form method="POST" action="/annachi/edit/{{ p.id }}">
+            <!-- PRICE & IMAGE LOCK: only stock input available -->
+            <input type="number" name="stock" placeholder="Stock" value="{{ p.stock }}" min="0" required>
+            <button class="cta out" type="submit">Save Stock</button>
+          </form>
+          <!-- Delete disabled: route blocked by backend; keep info button instead -->
+          <button class="cta out" type="button" onclick="togglePolicy(true)">Catalog Policy</button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ℹ️ CATALOG POLICY MODAL -->
+<div class="modal" id="policyModal">
+  <div class="sheet">
+    <h3>Catalog Managed by SasyaNova</h3>
+    <p>Item catalog (names, categories, images, MRP, and selling price) is centrally controlled for fairness and compliance.</p>
+    <p>As an Annachi, you can <b>only update stock</b> for your listings.</p>
+    <p class="mini">If you need a new item added or price/image updated, contact SasyaNova or have an admin use the Catalog UI.</p>
+    <div class="row gap8" style="margin-top:10px; flex-wrap:wrap">
+      <a class="cta out" href="/admin/catalog/ui" target="_blank" rel="noopener">Open Admin Catalog UI</a>
+      <button class="cta" onclick="togglePolicy(false)">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- 🔥 LIVE ORDERS DRAWER -->
+<div class="drawer-backdrop" id="ordersBackdrop"></div>
+<div class="drawer" id="ordersDrawer" aria-hidden="true">
+  <div class="head">
+    <div style="font-weight:800">🔴 Live Orders</div>
+    <div class="row gap8">
+      <button class="cta out" onclick="window.location.href='/dashboard/annachi/orders'">Open Orders Page</button>
+      <button class="close-btn" id="ordersClose">Close ✖</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="small">New orders assigned to you will appear here in real-time. Bundles group multiple items for the same consumer under your shop.</div>
+    <div class="divider"></div>
+    <div class="olist" id="ordersList">
+      <!-- bundle cards injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* Current Annachi id for SSE filtering (server template var) */
+const CURRENT_ANNACHI_ID = {{ current_user.id if current_user and current_user.id else 0 }} ;
+
+/* 🔐 Fixed categories (for any UI hints; editing price/image not allowed) */
+const ALLOWED_CATS = ["cereals","fruits","vegetables"];
+
+/* Dark Mode */
+const THEME_KEY="SN_THEME";
+function applyTheme(m){document.body.classList.toggle("dark",m==="dark");document.getElementById("darkToggle").textContent=m==="dark"?"☀️":"🌙";}
+(function(){let s=localStorage.getItem(THEME_KEY);applyTheme(s||"light")})();
+document.getElementById("darkToggle").onclick=()=>{let m=document.body.classList.contains("dark")?"light":"dark";localStorage.setItem(THEME_KEY,m);applyTheme(m)};
+
+/* Toast */
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.remove("show"); void t.offsetWidth; t.classList.add("show");
+}
+
+/* Policy modal */
+function togglePolicy(s){ document.getElementById('policyModal').classList.toggle('show', !!s); }
+
+/* ---------------- CSRF helpers (403 fix) ---------------- */
+function getMetaCSRF(){
+  const m=document.querySelector('meta[name="csrf-token"]');
+  return (m && m.content) ? m.content : '';
+}
+function getCookie(name){
+  const v=('; '+document.cookie).split('; '+name+'=');
+  if(v.length===2) return v.pop().split(';').shift();
+  return '';
+}
+function csrfHeaders(){
+  const token = getMetaCSRF() || getCookie('csrf_token') || getCookie('X-CSRFToken') || getCookie('csrftoken');
+  const h = {};
+  if(token){
+    h['X-CSRFToken'] = token;        // Flask/DRF style
+    h['X-CSRF-Token'] = token;       // Alt header
+  }
+  return h;
+}
+
+/* ---- Location: load and save via /annachi/profile/location ---- */
+async function loadLocation(){
+  try{
+    const r = await fetch('/annachi/profile/location', { credentials:'same-origin' });
+    if(!r.ok){ throw new Error('fetch failed'); }
+    const data = await r.json();
+    const lat = data.shop_lat ?? '';
+    const lng = data.shop_lng ?? '';
+    const pin = data.pincode ?? '';
+    const rad = data.service_radius_km ?? '';
+    document.getElementById('shopLat').value = lat;
+    document.getElementById('shopLng').value = lng;
+    document.getElementById('shopPin').value = pin;
+    document.getElementById('shopRad').value = rad;
+    document.getElementById('locInfo').textContent =
+      (lat && lng ? `GPS: ${(+lat).toFixed(4)}, ${(+lng).toFixed(4)}` : 'GPS not set') +
+      (pin ? ` • PIN: ${pin}` : '') +
+      (rad ? ` • Radius: ${rad} km` : '');
+  }catch(e){
+    document.getElementById('locInfo').textContent = 'Could not load location';
+  }
+}
+
+async function saveLocation(){
+  const lat = document.getElementById('shopLat').value.trim();
+  const lng = document.getElementById('shopLng').value.trim();
+  const pin = document.getElementById('shopPin').value.trim();
+  const rad = document.getElementById('shopRad').value.trim();
+  const payload = {
+    shop_lat: lat ? parseFloat(lat) : null,
+    shop_lng: lng ? parseFloat(lng) : null,
+    pincode: pin || null,
+    service_radius_km: rad ? parseInt(rad) : null
+  };
+
+  // 1) Try JSON with CSRF headers + credentials
+  try{
+    const r = await fetch('/annachi/profile/location', {
+      method:'POST',
+      credentials:'same-origin',
+      headers:Object.assign({'Content-Type':'application/json'}, csrfHeaders()),
+      body: JSON.stringify(payload)
+    });
+
+    if(r.status === 403){
+      // 2) Retry form-encoded with csrf_token field (Flask-WTF)
+      const token = getMetaCSRF() || getCookie('csrf_token') || '';
+      const form = new URLSearchParams();
+      if(payload.shop_lat !== null) form.append('shop_lat', String(payload.shop_lat));
+      if(payload.shop_lng !== null) form.append('shop_lng', String(payload.shop_lng));
+      if(payload.pincode !== null) form.append('pincode', String(payload.pincode));
+      if(payload.service_radius_km !== null) form.append('service_radius_km', String(payload.service_radius_km));
+      if(token) form.append('csrf_token', token);
+
+      const r2 = await fetch('/annachi/profile/location', {
+        method:'POST',
+        credentials:'same-origin',
+        headers:Object.assign({'Content-Type':'application/x-www-form-urlencoded'}, csrfHeaders()),
+        body: form.toString()
+      });
+      const data2 = await r2.json().catch(()=>({}));
+      if(r2.ok && (data2.ok===true || data2.status==='ok')){
+        showToast('Location saved ✓'); loadLocation(); return;
+      }
+      showToast((data2 && (data2.error||data2.message)) || 'Save failed ❌'); return;
+    }
+
+    const data = await r.json().catch(()=>({}));
+    if(r.ok && (data.ok===true || data.status==='ok')){ showToast('Location saved ✓'); loadLocation(); }
+    else{ showToast((data && (data.error||data.message)) || 'Save failed ❌'); }
+  }catch(e){
+    showToast('Save failed ❌');
+  }
+}
+
+function useMyGPS(){
+  if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const {latitude,longitude}=pos.coords;
+      document.getElementById('shopLat').value = latitude.toFixed(6);
+      document.getElementById('shopLng').value = longitude.toFixed(6);
+      showToast('GPS filled ✓');
+    },
+    err=>{ showToast('Could not get GPS ❌'); },
+    { enableHighAccuracy:true, timeout:12000, maximumAge:0 }
+  );
+}
+
+/* ---------- LIVE ORDERS (bundle view) ---------- */
+let es=null;
+let liveCount = 0;
+const ordersMap = {}; // id -> {status, product:{name,price,category}, quantity, total, created_at, bundle_id}
+const drawer = document.getElementById('ordersDrawer');
+const backdrop = document.getElementById('ordersBackdrop');
+const badge = document.getElementById('liveBadge');
+const closeBtn = document.getElementById('ordersClose');
+const liveBtn = document.getElementById('liveBtn');
+const listEl = document.getElementById('ordersList');
+
+function openOrdersDrawer(){ drawer.classList.add('open'); backdrop.classList.add('open'); drawer.setAttribute('aria-hidden','false'); }
+function closeOrdersDrawer(){ drawer.classList.remove('open'); backdrop.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); }
+closeBtn.addEventListener('click', closeOrdersDrawer);
+backdrop.addEventListener('click', closeOrdersDrawer);
+liveBtn.addEventListener('click', ()=>{ connectSSE(); openOrdersDrawer(); });
+
+/* ---- Helpers: bundle compute + render ---- */
+function bundleStatus(lines){
+  if(lines.every(l=>l.status==='Delivered')) return 'Delivered';
+  if(lines.every(l=>l.status==='Packed' || l.status==='Delivered')) return 'Packed';
+  return 'Pending';
+}
+function money(n){ return '₹'+(Math.round((n||0)*100)/100).toFixed(0); }
+
+function renderBundles(){
+  // group by bundle_id (fallback to order id if missing)
+  const groups = {};
+  Object.values(ordersMap).forEach(o=>{
+    const bid = o.bundle_id || `solo_${o.id}`;
+    (groups[bid] ||= []).push(o);
+  });
+
+  // newest first by max created_at
+  const bundleIds = Object.keys(groups).sort((a,b)=>{
+    const at = Math.max(...groups[a].map(x=>Date.parse(x.created_at||0) || 0));
+    const bt = Math.max(...groups[b].map(x=>Date.parse(x.created_at||0) || 0));
+    return bt - at;
+  });
+
+  listEl.innerHTML = bundleIds.map(bid=>{
+    const lines = groups[bid];
+    const created = (lines[0]?.created_at || '').replace('T',' ').slice(5,16);
+    const items = lines.reduce((n,l)=>n + (l.quantity||0), 0);
+    const total = lines.reduce((s,l)=> s + (l.quantity||0) * ((l.product&&l.product.price)||0), 0);
+    const st = bundleStatus(lines);
+
+    // Action buttons (bundle level)
+    let bundleActions = '';
+    if(st==='Pending'){
+      bundleActions = `<button class="cta out" onclick="bulkUpdateBundle('${bid}','Packed')">Pack bundle</button>`;
+    }else if(st==='Packed'){
+      bundleActions = `<button class="cta" onclick="bulkUpdateBundle('${bid}','Delivered')">Deliver bundle</button>`;
+    }else{
+      bundleActions = `<button class="cta out" disabled>Completed</button>`;
+    }
+
+    // Line items (each with per-line quick button)
+    const lineRows = lines.map(l=>{
+      const qty = l.quantity||1;
+      const name = (l.product && l.product.name) ? l.product.name : 'Item';
+      const price = (l.product && l.product.price) ? l.product.price : 0;
+      const cat = (l.product && l.product.category) ? l.product.category : '';
+      const lineTotal = qty*price;
+      let lineAction = '';
+      if(l.status==='Pending'){
+        lineAction = `
+          <form method="POST" action="/annachi/orders/update/${l.id}">
+            <input type="hidden" name="status" value="Packed">
+            <button class="cta out" type="submit">Pack</button>
+          </form>`;
+      }else if(l.status==='Packed'){
+        lineAction = `
+          <form method="POST" action="/annachi/orders/update/${l.id}">
+            <input type="hidden" name="status" value="Delivered">
+            <button class="cta" type="submit">Deliver</button>
+          </form>`;
+      }else{
+        lineAction = `<button class="cta out" disabled>Done</button>`;
+      }
+      return `
+        <div class="bundle-line" id="live_${l.id}">
+          <div>
+            <div class="oline"><b>#${l.id}</b> • ${name} × ${qty} • ${money(lineTotal)}</div>
+            <div class="bundle-meta">
+              <span>Created: ${created||'—'}</span>
+              ${cat ? `<span class="otag">Cat: ${cat}</span>` : ''}
+              <span>Status: <b id="live_st_${l.id}">${l.status||'Pending'}</b></span>
+            </div>
+          </div>
+          <div class="oa" id="live_actions_${l.id}">${lineAction}</div>
+        </div>`;
+    }).join("");
+
+    return `
+      <div class="ocard" id="bundle_${CSS.escape ? CSS.escape(bid) : bid}">
+        <div class="bundle-head">
+          <div class="oline"><b>Bundle: ${bid}</b></div>
+          <div class="oa">${bundleActions}</div>
+        </div>
+        <div class="bundle-meta">
+          <span>${items} item(s)</span>
+          <span>Total: <b>${money(total)}</b></span>
+          <span>Bundle Status: <b>${st}</b></span>
+        </div>
+        <div class="bundle-lines">
+          ${lineRows}
+        </div>
+      </div>`;
+  }).join("");
+}
+
+/* Bulk update using existing per-order route */
+async function bulkUpdateBundle(bundleId, nextStatus){
+  // find orders in this bundle that need change
+  const lines = Object.values(ordersMap).filter(o => (o.bundle_id||`solo_${o.id}`) === bundleId);
+  const targets = lines.filter(l => {
+    if(nextStatus==='Packed') return l.status==='Pending';
+    if(nextStatus==='Delivered') return l.status==='Packed';
+    return false;
+  });
+  if(!targets.length){ showToast('No lines need update.'); return; }
+
+  try{
+    for(const l of targets){
+      await fetch(`/annachi/orders/update/${l.id}`, {
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:`status=${encodeURIComponent(nextStatus)}`
+      });
+      // SSE will refresh statuses; no need to mutate here
+    }
+    showToast(`Bundle → ${nextStatus} ✓`);
+  }catch(e){
+    console.error(e);
+    showToast('Bundle update failed ❌');
+  }
+}
+
+/* Upsert order then re-render bundles */
+function upsertOrder(o){
+  ordersMap[o.id] = o;
+  renderBundles();
+}
+
+/* badge bump */
+function bumpBadge(){
+  liveCount = Math.max(0, liveCount + 1);
+  badge.textContent = String(liveCount);
+  badge.classList.add('show');
+}
+function clearBadge(){
+  liveCount = 0;
+  badge.textContent = '0';
+  badge.classList.remove('show');
+}
+
+/* ---- SSE: listen for new orders assigned to me ---- */
+function connectSSE(){
+  if(es){ return; }
+  try{
+    es = new EventSource('/annachi/orders/stream');
+    es.onmessage = (e)=>{
+      try{
+        const msg = JSON.parse(e.data||'{}');
+        if(!msg || (!msg.type)) return;
+        const mine = (String(msg.assigned_annachi_id)===String(CURRENT_ANNACHI_ID)) || (String(msg.owner_id)===String(CURRENT_ANNACHI_ID));
+        if(!mine) return;
+
+        if(msg.type==='new_order'){
+          const o = msg.order || {};
+          upsertOrder(o);
+          bumpBadge();
+          showToast(`🆕 Order #${o.id || ''} — ${o.product?.name || 'Item'} × ${o.quantity || ''}`);
+        }
+        if(msg.type==='status_update'){
+          const id = msg.order_id;
+          if(id){
+            const cur = ordersMap[id] || { id };
+            cur.status = msg.status || cur.status || 'Pending';
+            cur.bundle_id = msg.bundle_id || cur.bundle_id; // ensure bundle sticks
+            ordersMap[id] = cur;
+            renderBundles();
+            showToast(`Order #${id} → ${msg.status}`);
+          }
+        }
+      }catch(_){}
+    };
+    es.onerror = ()=>{};
+    showToast('Live connected 🔔');
+  }catch(_){
+    showToast('Live connect failed ❌');
+  }
+}
+
+/* Clear badge when drawer opens */
+const drawerEl = document.getElementById('ordersDrawer');
+const backdropEl = document.getElementById('ordersBackdrop');
+drawerEl.addEventListener('transitionend', ()=>{ if(drawerEl.classList.contains('open')){ clearBadge(); }});
+document.addEventListener('keydown', (e)=>{ if(e.key==='o' && (e.ctrlKey || e.metaKey)){ connectSSE(); openOrdersDrawer(); e.preventDefault(); }});
+document.getElementById('liveBtn').addEventListener('click', ()=>{ connectSSE(); openOrdersDrawer(); });
+
+/* INIT */
+loadLocation();
+window.addEventListener('load', connectSSE);
+</script>
+</body>
+</html>

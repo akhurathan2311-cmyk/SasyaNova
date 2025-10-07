@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>SasyaNova — Register</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(180deg, #ecfdf5 0%, #f9fafb 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .card {
+      background: #ffffff;
+      padding: 28px 24px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 10px 32px rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(17, 24, 39, 0.05);
+    }
+    h2 {
+      margin: 0 0 20px 0;
+      text-align: center;
+      font-size: 22px;
+      color: #047857;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    .input {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .input label {
+      font-size: 14px;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #111827;
+    }
+    .input input,
+    .input select {
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .input input:focus,
+    .input select:focus {
+      border-color: #10b981;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #10b981;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.25s ease;
+    }
+    button:hover {
+      background: #059669;
+    }
+    .alt {
+      margin-top: 14px;
+      font-size: 14px;
+      text-align: center;
+      color: #374151;
+    }
+    .alt a {
+      color: #10b981;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s ease;
+    }
+    .alt a:hover {
+      color: #059669;
+      text-decoration: underline;
+    }
+    .emoji {
+      font-size: 26px;
+      display: block;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="emoji">🌾</div>
+    <h2>SasyaNova Register</h2>
+    <form method="POST" action="/register">
+      <div class="input">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+      </div>
+      <div class="input">
+        <label for="role">Register as</label>
+        <select id="role" name="role" required>
+          <option value="consumer">Consumer</option>
+          <option value="annachi">Annachi Kaadai</option>
+          <option value="farmer">Farmer</option>
+          <option value="ngo">NGO / Admin</option>
+        </select>
+      </div>
+      <div class="input">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+      </div>
+      <div class="input">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required>
+      </div>
+      <button type="submit">Register</button>
+    </form>
+    <div class="alt">
+      Already have an account? <a href="/login">Login</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Annachi Kaadai — Orders</title>
+
+  <!-- 🔒 Deployment-safe meta for HTTPS/CDN on Render -->
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta name="color-scheme" content="light dark">
+
+  <!-- ⚡ Font perf for production -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --brand:#16a34a; --brand-2:#dcfce7; --ink:#111827; --bg:#fafafa;
+      --card:rgba(255,255,255,0.9); --border:rgba(17,24,39,0.12); --shadow:0 8px 24px rgba(17,24,39,.12);
+      --ok:#10b981; --warn:#f59e0b; --info:#2563eb;
+    }
+    body.dark {
+      --bg:#111827; --ink:#f9fafb; --card:rgba(31,41,55,0.78); --border:rgba(255,255,255,0.14);
+      --brand-2:#064e3b; --shadow:0 12px 36px rgba(0,0,0,.55);
+    }
+    *{box-sizing:border-box}
+    body {margin:0; background:var(--bg); color:var(--ink); font-family:Inter, sans-serif;}
+    .container {max-width:1200px; margin:0 auto; padding:12px 16px}
+    .row {display:flex; align-items:center}
+    .between {justify-content:space-between}
+    .gap8 {gap:8px}
+
+    /* Topbar — SAME AS DASHBOARD (now glass) */
+    .topbar {
+      position:sticky; top:0; background:var(--card); border-bottom:1px solid var(--border); z-index:50;
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .brand {font-weight:800; font-size:22px; display:flex; gap:8px}
+    .brand-badge {background:var(--brand-2); color:var(--brand); padding:4px 10px; border-radius:999px; font-weight:700}
+    .icon-btn {border:1px solid var(--border); background:var(--card); border-radius:12px; padding:8px 12px; cursor:pointer}
+    .cta {background:var(--brand); color:#fff; border:0; border-radius:12px; padding:10px 14px; font-weight:700; cursor:pointer}
+    .cta.out {background:transparent; color:var(--ink); border:1px solid var(--border)}
+
+    /* Metrics strip — luxury cards */
+    .metrics {display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-top:16px}
+    .mcard {background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:16px}
+    .mcard b{font-size:14px; opacity:.75}
+    .mval {font-size:22px; font-weight:800; margin-top:6px}
+    .msub {font-size:12px; opacity:.6}
+
+    /* Charts */
+    .charts {display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:16px}
+    .chart {background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:16px}
+    .barwrap{height:18px; background:#eef2f7; border-radius:999px; overflow:hidden; display:flex}
+    .bar-ok{background:var(--ok); height:100%}
+    .bar-warn{background:var(--warn); height:100%}
+    .bar-brand{background:var(--brand); height:100%}
+    .legend{display:flex; gap:12px; flex-wrap:wrap; margin-top:10px; font-size:12px}
+    .legend span{display:inline-flex; align-items:center; gap:6px}
+    .dot{width:10px; height:10px; border-radius:2px; display:inline-block}
+
+    /* Orders grid — luxury cards */
+    .orders {margin-top:20px}
+    .grid {display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px}
+    @media(min-width:1200px){ .grid{ grid-template-columns: repeat(4, 1fr); } }
+    .card {
+      background:var(--card); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow);
+      overflow:hidden; display:flex; flex-direction:column;
+      transition:transform .2s, box-shadow .2s, border-color .2s;
+      position:relative; cursor:pointer;
+    }
+    .card:hover { transform:translateY(-6px); box-shadow:0 12px 36px rgba(0,0,0,.20); border-color:rgba(99,102,241,.28) }
+    .card .body {padding:14px; flex:1}
+    .card .body b {display:block; margin-bottom:6px; font-size:16px}
+    .meta {font-size:14px; margin:4px 0; opacity:.9}
+    .muted{opacity:.65}
+    .foot {padding:12px 14px; border-top:1px dashed var(--border); display:flex; gap:10px; flex-wrap:wrap}
+    .foot form {pointer-events: auto;}
+    .card .selbox{pointer-events:auto}
+
+    /* Timeline (3 steps) */
+    .timeline{display:flex; justify-content:space-between; align-items:center; margin:12px 0}
+    .step{flex:1; text-align:center; position:relative}
+    .step:before{content:""; position:absolute; top:50%; left:0; width:100%; height:3px; background:var(--border)}
+    .step:first-child:before{left:50%; width:50%}
+    .step:last-child:before{width:50%}
+    .badge {position:relative; z-index:1; background:var(--card); padding:6px 12px; border-radius:20px; font-size:12px; border:2px solid var(--border); display:inline-block; min-width:90px}
+    .active .badge{background:var(--brand); color:#fff; border-color:var(--brand)}
+
+    /* Empty state */
+    .empty{background:var(--card); border:1px dashed var(--border); border-radius:16px; padding:18px; text-align:center; color:#6b7280; box-shadow:var(--shadow); margin-top:16px}
+
+    /* NEW: tiny tag */
+    .tag{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid var(--border);border-radius:999px;font-size:11px;background:var(--card)}
+
+    /* NEW: Controls bar */
+    .controls{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:10px}
+    .txt{padding:10px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--ink)}
+    .select{padding:10px; border:1px solid var(--border); border-radius:10px; background:transparent; color:var(--ink)}
+    .seg{display:flex; gap:8px; flex-wrap:wrap}
+    .seg .chip{padding:8px 12px; border:1px solid var(--border); border-radius:999px; cursor:pointer; background:var(--card)}
+    .seg .chip.active{background:var(--brand); color:#fff; border-color:var(--brand)}
+    .selbox{position:absolute; top:10px; right:10px; width:18px; height:18px; display:none}
+    .bulk-on .selbox{display:block}
+
+    /* ===================== */
+    /* 🔥 DETAILS DRAWER 🔥  */
+    /* ===================== */
+    .drawer-backdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; z-index:60;
+    }
+    .drawer{
+      position:fixed; top:0; right:0; width:420px; max-width:100%; height:100vh; background:var(--card);
+      border-left:1px solid var(--border); box-shadow:var(--shadow); transform:translateX(100%);
+      transition:transform .22s ease; z-index:61; overflow:auto;
+      backdrop-filter: blur(6px);
+    }
+    .drawer.open{ transform:translateX(0); }
+    .drawer-backdrop.open{ display:block; }
+    .drawer .head{
+      position:sticky; top:0; background:var(--card); border-bottom:1px solid var(--border);
+      padding:14px 16px; display:flex; align-items:center; justify-content:space-between;
+    }
+    .drawer .content{ padding:14px 16px; }
+    .kv{display:grid; grid-template-columns:120px 1fr; gap:8px; margin:8px 0; font-size:14px}
+    .kv b{opacity:.7}
+    .drawer .timeline{margin-top:10px}
+    .drawer .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    .close-btn{border:1px solid var(--border); background:transparent; border-radius:10px; padding:6px 10px; cursor:pointer}
+
+    /* NEW: bundle list inside drawer */
+    .bundle-box{margin-top:10px; border-top:1px dashed var(--border); padding-top:10px}
+    .bline{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; padding:6px 0; border-bottom:1px dashed var(--border)}
+    .bline:last-child{border-bottom:0}
+    .bmeta{font-size:12px; opacity:.75; display:flex; gap:8px; flex-wrap:wrap}
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="container row between">
+    <div class="brand">🌾 SasyaNova <span class="brand-badge">Annachi Orders</span></div>
+    <div class="row gap8">
+      <button class="icon-btn" id="darkToggle">🌙</button>
+      <button class="cta out" onclick="window.location.href='/dashboard/annachi'">⬅ Dashboard</button>
+      <button class="cta" onclick="window.location.href='/logout'">Logout</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- METRICS -->
+  <div class="metrics">
+    <div class="mcard">
+      <b>Total Orders</b>
+      <div class="mval" id="m_total_orders">{{ metrics.total_orders if metrics is defined else orders|length }}</div>
+      <div class="msub">Today & active</div>
+    </div>
+    <div class="mcard">
+      <b>Gross</b>
+      <div class="mval" id="m_gross">₹{{ metrics.earnings_gross if metrics is defined else 0 }}</div>
+      <div class="msub">All time</div>
+    </div>
+    <div class="mcard">
+      <b>Commission</b>
+      <div class="mval" id="m_commission">₹{{ metrics.commission if metrics is defined else 0 }}</div>
+      <div class="msub">Platform fee</div>
+    </div>
+    <div class="mcard">
+      <b>Net Earnings</b>
+      <div class="mval" id="m_net">₹{{ metrics.earnings_net if metrics is defined else 0 }}</div>
+      <div class="msub">Next-day payout</div>
+    </div>
+    <div class="mcard">
+      <b>Rating</b>
+      <div class="mval" id="m_rating">{{ metrics.avg_rating if metrics is defined else '—' }}</div>
+      <div class="msub" id="m_reviews">{{ metrics.ratings_count if metrics is defined else 0 }} reviews</div>
+    </div>
+    <div class="mcard">
+      <b>On-time Packing</b>
+      <div class="mval" id="m_sla">{{ metrics.sla_ready_pct if metrics is defined else '—' }}%</div>
+      <div class="msub">Last 30 orders</div>
+    </div>
+  </div>
+
+  <!-- CHARTS (pure CSS) -->
+  {% set gross = (metrics.earnings_gross if metrics is defined else 0) %}
+  {% set commission = (metrics.commission if metrics is defined else 0) %}
+  {% set net = (metrics.earnings_net if metrics is defined else (gross - commission if gross>0 else 0)) %}
+  {% set maxv = gross if gross>commission else commission %}
+  {% set maxv = net if net>maxv else maxv %}
+  {% set maxv = maxv if maxv>1 else 1 %}
+  {% set gross_pct = (gross / maxv * 100) if maxv else 0 %}
+  {% set comm_pct = (commission / maxv * 100) if maxv else 0 %}
+  {% set net_pct = (net / maxv * 100) if maxv else 0 %}
+  {% set rating = (metrics.avg_rating if metrics is defined else 0) %}
+  {% set rating_pct = (rating / 5 * 100) if rating else 0 %}
+  {% set sla = (metrics.sla_ready_pct if metrics is defined else 0) %}
+  {% set sla_pct = sla %}
+
+  <div class="charts">
+    <div class="chart">
+      <div class="row between"><b>Earnings Mix</b><span class="muted">Relative scale</span></div>
+      <div class="barwrap" style="margin-top:10px">
+        <div class="bar-brand" id="bar_gross" style="width: {{ gross_pct }}%"></div>
+      </div>
+      <div class="barwrap" style="margin-top:8px">
+        <div class="bar-warn" id="bar_commission" style="width: {{ comm_pct }}%"></div>
+      </div>
+      <div class="barwrap" style="margin-top:8px">
+        <div class="bar-ok" id="bar_net" style="width: {{ net_pct }}%"></div>
+      </div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--brand)"></i>Gross ₹<span id="lg_gross">{{ gross }}</span></span>
+        <span><i class="dot" style="background:var(--warn)"></i>Commission ₹<span id="lg_commission">{{ commission }}</span></span>
+        <span><i class="dot" style="background:var(--ok)"></i>Net ₹<span id="lg_net">{{ net }}</span></span>
+      </div>
+    </div>
+
+    <div class="chart">
+      <div class="row between"><b>Ratings & SLA</b><span class="muted">Higher is better</span></div>
+      <div style="margin-top:10px">Avg Rating: <span id="lbl_rating">{{ rating or '—' }}</span> / 5</div>
+      <div class="barwrap" style="margin-top:6px">
+        <div class="bar-ok" id="bar_rating" style="width: {{ rating_pct }}%"></div>
+      </div>
+      <div style="margin-top:12px">On-time Packing: <span id="lbl_sla">{{ sla }}</span>%</div>
+      <div class="barwrap" style="margin-top:6px">
+        <div class="bar-brand" id="bar_sla" style="width: {{ sla_pct }}%"></div>
+      </div>
+      <div class="legend" style="margin-top:10px">
+        <span><i class="dot" style="background:var(--ok)"></i>Quality</span>
+        <span><i class="dot" style="background:var(--brand)"></i>SLA</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls" id="controls">
+    <div class="seg" id="statusSeg">
+      <div class="chip active" data-status="all" onclick="setFilterStatus('all', this)">All</div>
+      <div class="chip" data-status="Pending" onclick="setFilterStatus('Pending', this)">Pending</div>
+      <div class="chip" data-status="Packed" onclick="setFilterStatus('Packed', this)">Packed</div>
+      <div class="chip" data-status="Delivered" onclick="setFilterStatus('Delivered', this)">Delivered</div>
+    </div>
+    <input class="txt" id="searchBox" placeholder="Search by product or #id" oninput="applyFilters()" style="flex:1; min-width:180px">
+    <select class="select" id="sortSel" onchange="applyFilters()">
+      <option value="new">Sort: Newest first</option>
+      <option value="old">Sort: Oldest first</option>
+      <option value="val_desc">Sort: Value high → low</option>
+      <option value="val_asc">Sort: Value low → high</option>
+    </select>
+    <button class="cta out" id="bulkToggle" onclick="toggleBulk()">Select Mode</button>
+    <button class="cta out" onclick="bulkUpdate('Packed')">Pack Selected</button>
+    <button class="cta" onclick="bulkUpdate('Delivered')">Deliver Selected</button>
+    <button class="cta out" onclick="exportCSV()">Export CSV</button>
+    <button class="cta out" onclick="printPickList()">Print Pick List</button>
+    <button class="cta out" id="soundBtn" onclick="toggleSound()">🔔 Sound Off</button>
+    <button class="cta out" onclick="enableNotify()">🔔 Desktop</button>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="orders">
+    <div class="row between">
+      <h2>📦 Active Orders</h2>
+    </div>
+
+    {% if orders and orders|length > 0 %}
+    <div class="grid" id="ordersGrid">
+      {% for o in orders %}
+      <div class="card" id="order_{{ o.id }}"
+           data-order-id="{{ o.id }}"
+           data-status="{{ o.status }}"
+           data-total="{{ o.quantity * (o.product.price if o.product else 0) }}"
+           data-bundle="{{ o.bundle_id or '' }}"
+           data-ctime="{{ o.created_at.isoformat() if o.created_at else '' }}">
+        <input type="checkbox" class="selbox" data-sel="{{ o.id }}">
+        <div class="body">
+          <div class="row between">
+            <b>Order #{{ o.id }}</b>
+            <span class="muted" id="time_{{ o.id }}">{{ o.created_at.strftime('%b %d, %H:%M') if o.created_at else '' }}</span>
+          </div>
+          <div class="meta">
+            <strong>Product:</strong> <span id="prod_{{ o.id }}">{{ o.product.name if o.product else "N/A" }}</span>
+            {% if o.product and o.product.category %} <span class="tag">Cat: {{ o.product.category }}</span>{% endif %}
+            {% if o.bundle_id %} <span class="tag">Bundle: {{ o.bundle_id }}</span>{% endif %}
+            {% if o.assigned_annachi_id and o.product and o.product.owner_id != o.assigned_annachi_id %}
+              <span class="tag">Assigned</span>
+            {% endif %}
+          </div>
+          <div class="meta"><strong>Quantity:</strong> <span id="qty_{{ o.id }}">{{ o.quantity }}</span></div>
+          <div class="meta"><strong>Total:</strong> ₹<span id="total_{{ o.id }}">{{ o.quantity * (o.product.price if o.product else 0) }}</span></div>
+
+          <!-- TIMELINE -->
+          <div class="timeline" id="tl_{{ o.id }}">
+            <div class="step {% if o.status in ['Pending','Packed','Delivered'] %}active{% endif %}" data-step="Pending"><span class="badge">Pending</span></div>
+            <div class="step {% if o.status in ['Packed','Delivered'] %}active{% endif %}" data-step="Packed"><span class="badge">Packed</span></div>
+            <div class="step {% if o.status == 'Delivered' %}active{% endif %}" data-step="Delivered"><span class="badge">Delivered</span></div>
+          </div>
+        </div>
+        <div class="foot" id="actions_{{ o.id }}">
+          {% if o.status == "Pending" %}
+            <form method="POST" action="/annachi/orders/update/{{ o.id }}">
+              <input type="hidden" name="status" value="Packed">
+              <button class="cta" type="submit">Pack & Continue</button>
+            </form>
+          {% elif o.status == "Packed" %}
+            <form method="POST" action="/annachi/orders/update/{{ o.id }}">
+              <input type="hidden" name="status" value="Delivered">
+              <button class="cta" type="submit">Deliver & Complete</button>
+            </form>
+          {% elif o.status == "Delivered" %}
+            <button class="cta out" disabled>Completed ✅</button>
+          {% else %}
+            <button class="cta out" disabled>Unknown Status</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <div class="empty" id="emptyState">No orders yet.</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- 🔥 DETAILS DRAWER MARKUP -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="drawer" id="orderDrawer" aria-hidden="true">
+  <div class="head">
+    <div style="font-weight:800">Order <span id="d_title">#—</span></div>
+    <button class="close-btn" id="drawerClose">Close ✖</button>
+  </div>
+  <div class="content">
+    <div class="kv"><b>Bundle</b> <span id="d_bundle">—</span></div>
+    <div class="kv"><b>Created</b> <span id="d_created">—</span></div>
+    <div class="kv"><b>Status</b> <span id="d_status">—</span></div>
+    <div class="kv"><b>Product</b> <span id="d_product">—</span></div>
+    <div class="kv"><b>Quantity</b> <span id="d_qty">—</span></div>
+    <div class="kv"><b>Unit Price</b> ₹<span id="d_price">—</span></div>
+    <div class="kv"><b>Total</b> ₹<span id="d_total">—</span></div>
+
+    <div class="timeline" id="d_timeline">
+      <div class="step" data-step="Pending"><span class="badge">Pending</span></div>
+      <div class="step" data-step="Packed"><span class="badge">Packed</span></div>
+      <div class="step" data-step="Delivered"><span class="badge">Delivered</span></div>
+    </div>
+
+    <div class="bundle-box">
+      <div class="row between" style="align-items:flex-end">
+        <b>Bundle Items</b>
+        <div class="actions" id="d_bundle_actions"></div>
+      </div>
+      <div id="d_bundle_list"></div>
+    </div>
+
+    <div class="actions" id="d_actions" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- Dark Mode -->
+<script>
+  const THEME_KEY="SN_THEME";
+  function applyTheme(m){document.body.classList.toggle("dark",m==="dark");document.getElementById("darkToggle").textContent=m==="dark"?"☀️":"🌙";}
+  (function(){let s=localStorage.getItem(THEME_KEY);applyTheme(s||"light")})();
+  document.getElementById("darkToggle").onclick=()=>{let m=document.body.classList.contains("dark")?"light":"dark";localStorage.setItem(THEME_KEY,m);applyTheme(m)};
+</script>
+
+<!-- ✅ Realtime SSE + live metrics/charts + DOM updates (no API changes) -->
+<script>
+(function(){
+  const ME = {{ current_user.id if current_user is defined else 'null' }};
+
+  // Sound + desktop notify
+  let SOUND_ON=false;
+  const audioDing = new Audio('data:audio/mp3;base64,//uQZAAAAAAAAAAAAAAAAAAAA'); // placeholder beep
+  function toggleSound(){SOUND_ON=!SOUND_ON; const b=document.getElementById('soundBtn'); if(b) b.textContent=SOUND_ON?'🔔 Sound On':'🔔 Sound Off'}
+  window.toggleSound = toggleSound;
+  async function enableNotify(){
+    try{ await Notification.requestPermission(); }catch(_){}
+    alert('Desktop notifications ' + (Notification.permission==='granted'?'enabled':'permission: '+Notification.permission));
+  }
+  window.enableNotify = enableNotify;
+
+  const toNum = (v)=>{ if(typeof v==="number") return v; if(!v) return 0; return parseFloat(String(v).replace(/[^\d.]/g,""))||0; };
+
+  // ---------- IMPORTANT: Make Pack/Deliver buttons work ----------
+  function wireFormsStopPropagation(root=document){
+    root.querySelectorAll('.foot form, .drawer .actions form, .bundle-box form').forEach(f=>{
+      f.addEventListener('click', e=> e.stopPropagation());
+      f.addEventListener('submit', e=> { e.stopPropagation(); });
+      const btn = f.querySelector('button');
+      if(btn){ btn.addEventListener('click', e=> e.stopPropagation()); }
+    });
+  }
+
+  // ---------- NEW: Bundle condensation helpers (unchanged logic) ----------
+  function getCards(){ return Array.from(document.querySelectorAll('#ordersGrid .card')); }
+  function isHiddenLine(card){ return card.getAttribute('data-hiddenline')==='1'; }
+
+  function createBundleMasterCard(bundleId, cards){
+    if(!cards.length) return;
+    const grid = document.getElementById('ordersGrid');
+    const first = cards[0];
+    const ctime = cards
+      .map(c=>c.getAttribute('data-ctime')||'')
+      .filter(Boolean)
+      .sort()[0] || first.querySelector('.muted')?.textContent || '';
+
+    const total = cards.reduce((a,c)=> a + toNum(c.getAttribute('data-total')), 0);
+    const status = computeBundleStatus(cards);
+    const itemsCount = cards.length;
+
+    const anyAssigned = cards.some(c=> c.querySelector('.tag')?.textContent?.includes('Assigned'));
+    const cat = (cards[0].querySelector('.tag')?.textContent?.replace('Cat: ','') ) || '';
+
+    const master = document.createElement('div');
+    master.className = 'card';
+    master.id = 'bundle_' + bundleId;
+    master.setAttribute('data-order-id', 'BUNDLE_'+bundleId);
+    master.setAttribute('data-status', status);
+    master.setAttribute('data-total', total);
+    master.setAttribute('data-bundle', bundleId);
+    master.setAttribute('data-ctime', ctime);
+
+    master.innerHTML = `
+      <input type="checkbox" class="selbox" data-sel="BUNDLE_${bundleId}">
+      <div class="body">
+        <div class="row between">
+          <b>Bundle #${bundleId} • ${itemsCount} item${itemsCount>1?'s':''}</b>
+          <span class="muted">${(ctime||'').slice(0,16)}</span>
+        </div>
+        <div class="meta">
+          <strong>Products:</strong> <span>Multiple</span>
+          ${cat?`<span class="tag">Cat: ${cat}</span>`:''}
+          <span class="tag">Bundle: ${bundleId}</span>
+          ${anyAssigned?`<span class="tag">Assigned</span>`:''}
+        </div>
+        <div class="meta"><strong>Total (all lines):</strong> ₹<span>${total.toFixed ? total.toFixed(2) : total}</span></div>
+        <div class="timeline" id="tl_BUNDLE_${bundleId}">
+          <div class="step ${status!=='Pending' || status==='Pending' ? 'active' : ''}" data-step="Pending"><span class="badge">Pending</span></div>
+          <div class="step ${status==='Packed' || status==='Delivered' ? 'active' : ''}" data-step="Packed"><span class="badge">Packed</span></div>
+          <div class="step ${status==='Delivered' ? 'active' : ''}" data-step="Delivered"><span class="badge">Delivered</span></div>
+        </div>
+      </div>
+      <div class="foot" id="actions_BUNDLE_${bundleId}"></div>
+    `;
+
+    grid.prepend(master);
+    attachCardClick(master);
+    renderDrawerActions('BUNDLE_'+bundleId, status);
+  }
+
+  function condenseBundles(){
+    const cards = getCards();
+    const byBundle = {};
+    cards.forEach(c=>{
+      const bid = c.getAttribute('data-bundle')||'';
+      if(!bid) return;
+      (byBundle[bid] ||= []).push(c);
+    });
+    Object.entries(byBundle).forEach(([bid, arr])=>{
+      arr.forEach(c=>{
+        c.style.display = 'none';
+        c.setAttribute('data-hiddenline','1');
+      });
+      if(!document.getElementById('bundle_'+bid)){
+        createBundleMasterCard(bid, arr);
+      }else{
+        const master = document.getElementById('bundle_'+bid);
+        const tot = arr.reduce((a,c)=> a + toNum(c.getAttribute('data-total')), 0);
+        master.setAttribute('data-total', tot);
+        const st = computeBundleStatus(arr);
+        master.setAttribute('data-status', st);
+        setTimelineActive(master.querySelector('.timeline'), st);
+      }
+    });
+  }
+
+  function recomputeMetrics(){
+    const cards = getCards().filter(c=>!isHiddenLine(c));
+    const totals = cards.map(c=>toNum(c.getAttribute('data-total')));
+    const gross = totals.reduce((a,b)=>a+b,0);
+    const commissionRate = 0.10;
+    const commission = +(gross*commissionRate).toFixed(2);
+    const net = +(gross - commission).toFixed(2);
+    const totalOrders = cards.length;
+
+    const good = cards.filter(c=>{
+      const st = c.getAttribute('data-status');
+      return st==="Packed" || st==="Delivered";
+    }).length;
+    const slaPct = totalOrders ? +(good/totalOrders*100).toFixed(1) : 0;
+
+    const elTotal=document.getElementById('m_total_orders'); if(elTotal) elTotal.textContent = totalOrders;
+    const elGross=document.getElementById('m_gross'); if(elGross) elGross.textContent = "₹"+gross;
+    const elComm=document.getElementById('m_commission'); if(elComm) elComm.textContent = "₹"+commission;
+    const elNet=document.getElementById('m_net'); if(elNet) elNet.textContent = "₹"+net;
+
+    const lgGross=document.getElementById('lg_gross'); if(lgGross) lgGross.textContent=gross;
+    const lgComm=document.getElementById('lg_commission'); if(lgComm) lgComm.textContent=commission;
+    const lgNet=document.getElementById('lg_net'); if(lgNet) lgNet.textContent = net;
+
+    const maxv = Math.max(1,gross,commission,net);
+    const pct = (v)=> Math.min(100, Math.round(v/maxv*100));
+    const bg=document.getElementById('bar_gross'); if(bg) bg.style.width = pct(gross)+"%";
+    const bc=document.getElementById('bar_commission'); if(bc) bc.style.width = pct(commission)+"%";
+    const bn=document.getElementById('bar_net'); if(bn) bn.style.width = pct(net)+"%";
+  }
+
+  function setTimelineActive(container, newStatus){
+    const steps = Array.from(container.querySelectorAll('.step'));
+    steps.forEach(step=>{
+      const name = step.getAttribute('data-step');
+      let active=false;
+      if(newStatus==="Pending" && (name==="Pending")) active=true;
+      if(newStatus==="Packed" && (name==="Pending"||name==="Packed")) active=true;
+      if(newStatus==="Delivered") active=true;
+      step.classList.toggle('active', active);
+    });
+  }
+
+  // 👉 UPDATED: ensure each card always shows ONE advancing button
+  function setStatus(orderId, newStatus){
+    const isBundleMaster = String(orderId).startsWith('BUNDLE_');
+    const card = document.getElementById('order_'+orderId) ||
+                 document.getElementById(isBundleMaster ? ('bundle_'+String(orderId).replace('BUNDLE_','')) : orderId);
+    if(card){
+      card.setAttribute('data-status', newStatus);
+      const tl = card.querySelector('.timeline');
+      if(tl) setTimelineActive(tl, newStatus);
+
+      const actionsId = 'actions_' + orderId;
+      const act = document.getElementById(actionsId) ||
+                  document.getElementById('actions_' + (isBundleMaster ? ('BUNDLE_'+String(orderId).replace('BUNDLE_','')) : orderId));
+
+      if(act){
+        if(isBundleMaster){
+          // For bundle master: keep a single advancing button for the whole bundle
+          const bid = card.getAttribute('data-bundle') || String(orderId).replace('BUNDLE_','');
+          if(newStatus==="Pending"){
+            act.innerHTML = `<button class="cta out" onclick="bundleBulkUpdate('${bid}','Packed');event.stopPropagation()">Pack bundle</button>`;
+          } else if(newStatus==="Packed"){
+            act.innerHTML = `<button class="cta" onclick="bundleBulkUpdate('${bid}','Delivered');event.stopPropagation()">Deliver bundle</button>`;
+          } else if(newStatus==="Delivered"){
+            act.innerHTML = `<button class="cta out" disabled>Completed ✅</button>`;
+          } else {
+            act.innerHTML = `<button class="cta out" disabled>Unknown Status</button>`;
+          }
+        } else {
+          // Regular single order: ONE form that advances to the next step
+          const oid = String(orderId).replace('order_','');
+          if(newStatus==="Pending"){
+            act.innerHTML = `
+              <form method="POST" action="/annachi/orders/update/${oid}">
+                <input type="hidden" name="status" value="Packed">
+                <button class="cta" type="submit">Pack & Continue</button>
+              </form>`;
+          } else if(newStatus==="Packed"){
+            act.innerHTML = `
+              <form method="POST" action="/annachi/orders/update/${oid}">
+                <input type="hidden" name="status" value="Delivered">
+                <button class="cta" type="submit">Deliver & Complete</button>
+              </form>`;
+          } else if(newStatus==="Delivered"){
+            act.innerHTML = `<button class="cta out" disabled>Completed ✅</button>`;
+          } else {
+            act.innerHTML = `<button class="cta out" disabled>Unknown Status</button>`;
+          }
+          wireFormsStopPropagation(act);
+        }
+      }
+    }
+
+    // Keep drawer in sync if it's open for this order
+    if(currentDrawerOrderId && String(currentDrawerOrderId)===String(orderId)){
+      updateDrawerStatus(newStatus);
+      renderDrawerActions(orderId, newStatus);
+      const bid = document.getElementById('d_bundle')?.textContent || '';
+      if(bid && bid!=='—') renderBundleContents(bid);
+    }
+  }
+
+  function insertOrderCard(payload){
+    const grid = document.getElementById('ordersGrid');
+    const empty = document.getElementById('emptyState');
+    if(empty){ empty.remove(); }
+
+    const o = payload.order || {};
+    const id = o.id;
+    const qty = o.quantity || 1;
+    const prodName = (o.product && o.product.name) ? o.product.name : "N/A";
+    const price = (o.product && o.product.price) ? o.product.price : 0;
+    const total = qty*price;
+    const created = (o.created_at || "").replace('T',' ').slice(5,16);
+    const bundle = o.bundle_id || '';
+    const cat = (o.category || (o.product && o.product.category) || '');
+
+    const assignedToMe = (payload.assigned_annachi_id && ME && Number(payload.assigned_annachi_id)===Number(ME));
+    const ownedByMe = (payload.owner_id && ME && Number(payload.owner_id)===Number(ME));
+    const assignedBadge = (!ownedByMe && assignedToMe) ? `<span class="tag">Assigned</span>` : ``;
+    const catBadge = cat ? `<span class="tag">Cat: ${cat}</span>` : ``;
+    const bundleBadge = bundle ? `<span class="tag">Bundle: ${bundle}</span>` : ``;
+
+    const line = document.createElement('div');
+    line.className = 'card';
+    line.id = 'order_'+id;
+    line.setAttribute('data-order-id', id);
+    line.setAttribute('data-status', o.status || 'Pending');
+    line.setAttribute('data-total', total);
+    line.setAttribute('data-bundle', bundle);
+    line.setAttribute('data-ctime', o.created_at || '');
+
+    line.innerHTML = `
+      <input type="checkbox" class="selbox" data-sel="${id}">
+      <div class="body">
+        <div class="row between">
+          <b>Order #${id}</b>
+          <span class="muted" id="time_${id}">${created}</span>
+        </div>
+        <div class="meta"><strong>Product:</strong> <span id="prod_${id}">${prodName}</span> ${catBadge} ${bundleBadge} ${assignedBadge}</div>
+        <div class="meta"><strong>Quantity:</strong> <span id="qty_${id}">${qty}</span></div>
+        <div class="meta"><strong>Total:</strong> ₹<span id="total_${id}">${total}</span></div>
+        <div class="timeline" id="tl_${id}">
+          <div class="step ${o.status ? 'active' : 'active'}" data-step="Pending"><span class="badge">Pending</span></div>
+          <div class="step" data-step="Packed"><span class="badge">Packed</span></div>
+          <div class="step" data-step="Delivered"><span class="badge">Delivered</span></div>
+        </div>
+      </div>
+      <div class="foot" id="actions_${id}">
+        ${o.status==='Packed' ? `
+          <form method="POST" action="/annachi/orders/update/${id}">
+            <input type="hidden" name="status" value="Delivered">
+            <button class="cta" type="submit">Deliver & Complete</button>
+          </form>` : `
+          <form method="POST" action="/annachi/orders/update/${id}">
+            <input type="hidden" name="status" value="Packed">
+            <button class="cta" type="submit">Pack & Continue</button>
+          </form>`
+        }
+      </div>`;
+
+    grid.prepend(line);
+    attachCardClick(line);
+    wireFormsStopPropagation(line);
+
+    if(bundle){
+      line.style.display='none';
+      line.setAttribute('data-hiddenline','1');
+      const group = getBundleCards(bundle);
+      if(!document.getElementById('bundle_'+bundle)){
+        createBundleMasterCard(bundle, group);
+      }else{
+        const master = document.getElementById('bundle_'+bundle);
+        const tot = group.reduce((a,c)=> a + toNum(c.getAttribute('data-total')), 0);
+        master.setAttribute('data-total', tot);
+        const st = computeBundleStatus(group);
+        master.setAttribute('data-status', st);
+        setTimelineActive(master.querySelector('.timeline'), st);
+      }
+    }
+  }
+
+  let currentStatus='all';
+  function setFilterStatus(s, el){
+    currentStatus=s;
+    document.querySelectorAll('#statusSeg .chip').forEach(c=>c.classList.remove('active'));
+    if(el) el.classList.add('active');
+    applyFilters();
+  }
+  window.setFilterStatus = setFilterStatus;
+
+  function applyFilters(){
+    const q = (document.getElementById('searchBox').value||'').trim().toLowerCase();
+    const sort = document.getElementById('sortSel').value;
+    const cards = getCards().filter(c=>!isHiddenLine(c));
+
+    cards.forEach(c=>{
+      const st = c.getAttribute('data-status');
+      const id = c.getAttribute('data-order-id');
+      const name = (c.querySelector('[id^="prod_"]')?.textContent||'Multiple').toLowerCase();
+      const term = (!q) || name.includes(q) || String(id).includes(q);
+      const stOk = (currentStatus==='all') || (st===currentStatus);
+      c.style.display = (term && stOk) ? '' : 'none';
+    });
+
+    const visible = cards.filter(c=>c.style.display!=='none');
+    const grid = document.getElementById('ordersGrid');
+
+    const getTime = (c)=>{
+      const dct = c.getAttribute('data-ctime');
+      if(dct){ const t=Date.parse(dct); if(!isNaN(t)) return t; }
+      const ttxt = c.querySelector('.muted')?.textContent||'';
+      const d = Date.parse(ttxt); return isNaN(d)?0:d;
+    };
+    const getVal = (c)=> Number(c.getAttribute('data-total')||0);
+
+    visible.sort((a,b)=>{
+      if(sort==='old') return getTime(a)-getTime(b);
+      if(sort==='val_desc') return getVal(b)-getVal(a);
+      if(sort==='val_asc') return getVal(a)-getVal(b);
+      return getTime(b)-getTime(a);
+    });
+    visible.forEach(c=>grid.appendChild(c));
+
+    recomputeMetrics();
+  }
+  window.applyFilters = applyFilters;
+
+  let BULK=false;
+  function toggleBulk(){
+    BULK=!BULK;
+    document.body.classList.toggle('bulk-on', BULK);
+  }
+  window.toggleBulk = toggleBulk;
+
+  function getSelectedIds(){
+    return Array.from(document.querySelectorAll('.selbox:checked'))
+      .map(cb=>cb.getAttribute('data-sel'))
+      .filter(id=>id && !String(id).match(/^\d+$/) || !document.getElementById('order_'+id)?.getAttribute('data-hiddenline'));
+  }
+
+  async function bulkUpdate(targetStatus){
+    const ids = getSelectedIds();
+    if(!ids.length){ alert('Select orders first'); return; }
+    if(!confirm(`Update ${ids.length} orders → ${targetStatus}?`)) return;
+    for(const id of ids){
+      if(String(id).startsWith('BUNDLE_')){
+        const bid = String(id).replace('BUNDLE_','');
+        await bundleBulkUpdate(bid, targetStatus);
+      }else{
+        try{
+          const fd = new FormData();
+          fd.append('status', targetStatus);
+          const r = await fetch(`/annachi/orders/update/${id}`, { method:'POST', body: fd });
+          if(r.ok){ setStatus(id, targetStatus); }
+        }catch(_){}
+      }
+    }
+    applyFilters();
+  }
+  window.bulkUpdate = bulkUpdate;
+
+  function exportCSV(){
+    const onlySel = getSelectedIds();
+    const rows=[['Order/Bundle ID','Status','Product/Bundle','Qty','Total','Bundle']];
+    const cards = getCards().filter(c=>!isHiddenLine(c) && c.style.display!=='none');
+    cards.forEach(c=>{
+      const id=c.getAttribute('data-order-id');
+      const st=c.getAttribute('data-status');
+      const isBundle = String(id).startsWith('BUNDLE_');
+      const prod=isBundle?'(bundle)':(c.querySelector('[id^="prod_"]')?.textContent||'');
+      const qty=isBundle?'-':(c.querySelector('[id^="qty_"]')?.textContent||'');
+      const tot=c.getAttribute('data-total')||'0';
+      const bun=c.getAttribute('data-bundle')||'';
+      if(onlySel.length && !onlySel.includes(id)) return;
+      rows.push([id,st,prod,qty,tot,bun]);
+    });
+    const csv = rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='orders.csv'; a.click();
+  }
+  window.exportCSV = exportCSV;
+
+  function printPickList(){
+    const onlySel = getSelectedIds();
+    const rows=[];
+    const cards = getCards().filter(c=>!isHiddenLine(c) && c.style.display!=='none');
+    cards.forEach(c=>{
+      const id=c.getAttribute('data-order-id');
+      if(onlySel.length && !onlySel.includes(id)) return;
+      const isBundle = String(id).startsWith('BUNDLE_');
+      rows.push({
+        id,
+        st:c.getAttribute('data-status'),
+        name:isBundle?'(bundle)':(c.querySelector('[id^="prod_"]')?.textContent||''),
+        qty:isBundle?'-':(c.querySelector('[id^="qty_"]')?.textContent||''),
+        tot:c.getAttribute('data-total')||'0',
+        bun:c.getAttribute('data-bundle')||''
+      });
+    });
+    const w=window.open('','_blank');
+    w.document.write(`<html><head><title>Pick List</title></head><body><h3>Pick List</h3><table border="1" cellspacing="0" cellpadding="6"><tr><th>ID</th><th>Bundle</th><th>Product</th><th>Qty</th><th>Status</th><th>Total</th></tr>${rows.map(r=>`<tr><td>${r.id}</td><td>${r.bun||'—'}</td><td>${r.name}</td><td>${r.qty}</td><td>${r.st}</td><td>₹${r.tot}</td></tr>`).join('')}</table></body></html>`);
+    w.document.close(); w.focus(); w.print();
+  }
+  window.printPickList = printPickList;
+
+  // ============================ Drawer logic ============================
+  const drawer = document.getElementById('orderDrawer');
+  const backdrop = document.getElementById('drawerBackdrop');
+  const closeBtn = document.getElementById('drawerClose');
+  let currentDrawerOrderId = null;
+
+  function openDrawer(){ drawer.classList.add('open'); backdrop.classList.add('open'); drawer.setAttribute('aria-hidden','false'); }
+  function closeDrawer(){ drawer.classList.remove('open'); backdrop.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); currentDrawerOrderId=null; }
+  closeBtn.addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ closeDrawer(); }});
+
+  function updateDrawerStatus(newStatus){
+    const dStatus = document.getElementById('d_status');
+    if(dStatus) dStatus.textContent = newStatus;
+    const dTL = document.getElementById('d_timeline');
+    if(dTL) setTimelineActive(dTL, newStatus);
+  }
+
+  function renderDrawerActions(orderId, status){
+    const box = document.getElementById('d_actions');
+    if(!box) return;
+    if(String(orderId).startsWith('BUNDLE_')){
+      const bid = String(orderId).replace('BUNDLE_','');
+      if(status==="Pending"){
+        box.innerHTML = `<button class="cta out" onclick="bundleBulkUpdate('${bid}','Packed')">Pack bundle</button>`;
+      }else if(status==="Packed"){
+        box.innerHTML = `<button class="cta" onclick="bundleBulkUpdate('${bid}','Delivered')">Deliver bundle</button>`;
+      }else{
+        box.innerHTML = `<button class="cta out" disabled>Bundle Completed ✅</button>`;
+      }
+      wireFormsStopPropagation(document);
+      return;
+    }
+    // Single advancing button inside drawer as well
+    if(status==="Pending"){
+      box.innerHTML = `
+        <form method="POST" action="/annachi/orders/update/${orderId}">
+          <input type="hidden" name="status" value="Packed">
+          <button class="cta out" type="submit">Pack & Continue</button>
+        </form>`;
+    }else if(status==="Packed"){
+      box.innerHTML = `
+        <form method="POST" action="/annachi/orders/update/${orderId}">
+          <input type="hidden" name="status" value="Delivered">
+          <button class="cta" type="submit">Deliver & Complete</button>
+        </form>`;
+    }else if(status==="Delivered"){
+      box.innerHTML = `<button class="cta out" disabled>Completed ✅</button>`;
+    }else{
+      box.innerHTML = `<button class="cta out" disabled>Unknown Status</button>`;
+    }
+    wireFormsStopPropagation(document);
+  }
+
+  function getBundleCards(bundleId){
+    if(!bundleId) return [];
+    const cards = Array.from(document.querySelectorAll('#ordersGrid .card'));
+    return cards.filter(c => (c.getAttribute('data-bundle')||'') === bundleId);
+  }
+
+  function computeBundleStatus(cards){
+    if(!cards.length) return '—';
+    const statuses = cards.map(c=>c.getAttribute('data-status'));
+    if(statuses.every(s=>s==='Delivered')) return 'Delivered';
+    if(statuses.every(s=>s==='Packed' || s==='Delivered')) return 'Packed';
+    return 'Pending';
+  }
+
+  async function bundleBulkUpdate(bundleId, nextStatus){
+    const cards = getBundleCards(bundleId);
+    const targets = cards.filter(c=>{
+      const s=c.getAttribute('data-status');
+      if(nextStatus==='Packed') return s==='Pending';
+      if(nextStatus==='Delivered') return s==='Packed';
+      return false;
+    });
+    if(!targets.length){ alert('No lines need update'); return; }
+    for(const c of targets){
+      const id = c.getAttribute('data-order-id');
+      try{
+        const fd = new FormData();
+        fd.append('status', nextStatus);
+        const r = await fetch(`/annachi/orders/update/${id}`, { method:'POST', body: fd });
+        if(r.ok){ /* SSE will update UI */ }
+      }catch(_){}
+    }
+  }
+  window.bundleBulkUpdate = bundleBulkUpdate;
+
+  function renderBundleContents(bundleId){
+    const listBox = document.getElementById('d_bundle_list');
+    const actBox = document.getElementById('d_bundle_actions');
+    const cards = getBundleCards(bundleId);
+    if(!listBox || !actBox) return;
+
+    if(!cards.length){
+      listBox.innerHTML = `<div class="bmeta">No other items in this bundle.</div>`;
+      actBox.innerHTML = ``;
+      return;
+    }
+
+    const rows = cards.map(c=>{
+      const id = c.getAttribute('data-order-id');
+      const name = c.querySelector('[id^="prod_"]')?.textContent || 'Item';
+      const qty = c.querySelector('[id^="qty_"]')?.textContent || '1';
+      const tot = c.querySelector('[id^="total_"]')?.textContent || '0';
+      const st = c.getAttribute('data-status') || 'Pending';
+      return `
+        <div class="bline">
+          <div>
+            <div><b>#${id}</b> • ${name} × ${qty}</div>
+            <div class="bmeta">Total: ₹${tot} • Status: <b>${st}</b></div>
+          </div>
+          <div>
+            ${st==='Pending' ? `
+              <form method="POST" action="/annachi/orders/update/${id}">
+                <input type="hidden" name="status" value="Packed">
+                <button class="cta out" type="submit">Pack</button>
+              </form>` :
+             st==='Packed' ? `
+              <form method="POST" action="/annachi/orders/update/${id}">
+                <input type="hidden" name="status" value="Delivered">
+                <button class="cta" type="submit">Deliver</button>
+              </form>` :
+              `<button class="cta out" disabled>Done</button>`}
+          </div>
+        </div>`;
+    }).join('');
+
+    listBox.innerHTML = rows;
+    wireFormsStopPropagation(document);
+
+    const bst = computeBundleStatus(cards);
+    if(bst==='Pending'){
+      actBox.innerHTML = `<button class="cta out" onclick="bundleBulkUpdate('${bundleId}','Packed')">Pack bundle</button>`;
+    }else if(bst==='Packed'){
+      actBox.innerHTML = `<button class="cta" onclick="bundleBulkUpdate('${bundleId}','Delivered')">Deliver bundle</button>`;
+    }else{
+      actBox.innerHTML = `<button class="cta out" disabled>Bundle Completed</button>`;
+    }
+  }
+  window.renderBundleContents = renderBundleContents;
+
+  function populateDrawerFromCard(card){
+    const id = card.getAttribute('data-order-id');
+    const bundle = card.getAttribute('data-bundle') || '—';
+    const status = card.getAttribute('data-status') || 'Pending';
+    const title = document.getElementById('d_title');
+    const dBundle = document.getElementById('d_bundle');
+    const dCreated = document.getElementById('d_created');
+    const dProd = document.getElementById('d_product');
+    const dQty = document.getElementById('d_qty');
+    const dPrice = document.getElementById('d_price');
+    const dTotal = document.getElementById('d_total');
+
+    if(title) title.textContent = '#'+id;
+    if(dBundle) dBundle.textContent = bundle || '—';
+    const createdEl = card.querySelector('.muted');
+    if(dCreated) dCreated.textContent = createdEl ? createdEl.textContent : '—';
+
+    if(String(id).startsWith('BUNDLE_')){
+      if(dProd) dProd.textContent = 'Multiple items';
+      if(dQty) dQty.textContent = '—';
+      const totTxt = card.getAttribute('data-total')||'0';
+      if(dPrice) dPrice.textContent = '—';
+      if(dTotal) dTotal.textContent = totTxt;
+      updateDrawerStatus(status);
+      renderDrawerActions(id, status);
+      renderBundleContents(bundle);
+      currentDrawerOrderId = id;
+      wireFormsStopPropagation(document);
+      return;
+    }
+
+    const prodTxt = (card.querySelector('[id^="prod_"]')?.textContent)||'—';
+    const qtyTxt = (card.querySelector('[id^="qty_"]')?.textContent)||'—';
+    const totTxt = (card.querySelector('[id^="total_"]')?.textContent)||'0';
+    const price = Number(toNum(totTxt)) / Math.max(1, Number(qtyTxt));
+
+    if(dProd) dProd.textContent = prodTxt;
+    if(dQty) dQty.textContent = qtyTxt;
+    if(dPrice) dPrice.textContent = isFinite(price) ? price.toFixed(2) : '—';
+    if(dTotal) dTotal.textContent = totTxt;
+
+    updateDrawerStatus(status);
+    renderDrawerActions(id, status);
+    currentDrawerOrderId = id;
+    wireFormsStopPropagation(document);
+
+    if(bundle && bundle!=='—'){
+      renderBundleContents(bundle);
+    }else{
+      const listBox = document.getElementById('d_bundle_list');
+      const actBox = document.getElementById('d_bundle_actions');
+      if(listBox){
+        listBox.innerHTML = `
+          <div class="bline">
+            <div>
+              <div><b>#${id}</b> • ${prodTxt} × ${qtyTxt}</div>
+              <div class="bmeta">Total: ₹${totTxt} • Status: <b>${status}</b></div>
+            </div>
+            <div>(solo)</div>
+          </div>`;
+      }
+      if(actBox){ actBox.innerHTML = ''; }
+    }
+  }
+
+  function attachCardClick(card){
+    card.addEventListener('click', (e)=>{
+      const tag = (e.target.tagName||'').toLowerCase();
+      const isInteractive = tag==='button' || tag==='input' || tag==='select' || tag==='form' || e.target.closest('form');
+      if(isInteractive) return;
+      populateDrawerFromCard(card);
+      openDrawer();
+    });
+  }
+
+  Array.from(document.querySelectorAll('#ordersGrid .card')).forEach(attachCardClick);
+
+  // SSE hookup — filter to my orders only (no route changes)
+  try{
+    const es = new EventSource('/annachi/orders/stream');
+    es.onmessage = (evt)=>{
+      if(!evt.data) return;
+      let data = {};
+      try{ data = JSON.parse(evt.data); }catch(e){ return; }
+
+      const isMine = (!!ME) && (Number(data.owner_id)===Number(ME) || Number(data.assigned_annachi_id)===Number(ME));
+      if(!isMine) return;
+
+      if(data.type === 'status_update'){
+        setStatus(data.order_id, data.status);
+        if(SOUND_ON) try{ audioDing.currentTime=0; audioDing.play(); }catch(_){}
+        if(Notification && Notification.permission==='granted'){
+          new Notification(`Order #${data.order_id}`, { body:`Status → ${data.status}` });
+        }
+        const bid = data.bundle_id;
+        if(bid){
+          const group = getBundleCards(String(bid));
+          const master = document.getElementById('bundle_'+String(bid));
+          if(master){
+            const tot = group.reduce((a,c)=> a + toNum(c.getAttribute('data-total')), 0);
+            master.setAttribute('data-total', tot);
+            const st = computeBundleStatus(group);
+            master.setAttribute('data-status', st);
+            setTimelineActive(master.querySelector('.timeline'), st);
+          }
+        }
+        applyFilters();
+      }
+      if(data.type === 'new_order'){
+        const exists = document.getElementById('order_'+(data.order && data.order.id));
+        if(!exists){ insertOrderCard(data); }
+        if(SOUND_ON) try{ audioDing.currentTime=0; audioDing.play(); }catch(_){}
+        if(Notification && Notification.permission==='granted'){
+          const o=data.order||{};
+          new Notification(`New Order #${o.id||''}`, { body:`${o.product?.name||'Item'} × ${o.quantity||''}` });
+        }
+        applyFilters();
+      }
+    };
+  }catch(e){
+    console.warn('SSE not available', e);
+  }
+
+  // First-time condensation and compute
+  condenseBundles();
+  wireFormsStopPropagation(document);
+  applyFilters();
+  window.recomputeMetrics = recomputeMetrics;
+
+})();
+</script>
+
+</body>
+</html>

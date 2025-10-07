@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SasyaNova — Admin Catalog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ink:#111827; --muted:#6b7280; --bg:#f9fafb; --card:#ffffff;
+      --brand:#6c2bd9; --ok:#16a34a; --warn:#f59e0b; --danger:#ef4444;
+      --radius:14px; --shadow: 0 10px 24px rgba(17,24,39,.08);
+      --input:#eef2ff;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .container{max-width:1200px;margin:28px auto;padding:0 16px}
+    .title{font-size:28px;font-weight:800;letter-spacing:.2px;margin:0 0 6px}
+    .sub{color:var(--muted);margin:0 0 18px}
+    .card{background:var(--card);box-shadow:var(--shadow);border-radius:var(--radius);padding:16px}
+    .grid{display:grid;gap:16px}
+    .grid-2{grid-template-columns:1fr 1fr}
+    .grid-3{grid-template-columns:repeat(3,1fr)}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    input,select,textarea{
+      width:100%;padding:10px 12px;border:none;border-radius:12px;background:var(--input);
+      outline:2px solid transparent;transition:outline-color .15s; font-size:14px
+    }
+    input:focus,select:focus,textarea:focus{outline-color:var(--brand)}
+    button{border:none;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+    .btn{background:var(--brand);color:#fff}
+    .btn.secondary{background:#e5e7eb;color:#111}
+    .btn.ok{background:var(--ok);color:#fff}
+    .btn.warn{background:var(--warn);color:#111}
+    .btn.danger{background:var(--danger);color:#fff}
+    .btn.ghost{background:transparent;color:var(--ink);border:1px solid #e5e7eb}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+    th,td{padding:10px;border-bottom:1px solid #eee;vertical-align:middle}
+    th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px}
+    .pill.c{background:#fef3c7}
+    .pill.f{background:#dcfce7}
+    .pill.v{background:#e0e7ff}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .hint{font-size:12px;color:var(--muted)}
+    .toolbar{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+    .toolbar .grow{flex:1;min-width:220px}
+    .right{margin-left:auto}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace}
+    .muted{color:var(--muted)}
+    .badge{font-size:11px;color:#fff;background:#111;padding:3px 7px;border-radius:999px}
+    .sticky{position:sticky;top:0;background:var(--bg);padding:6px 0 10px;z-index:2}
+    .footer{margin-top:24px;color:var(--muted);font-size:12px}
+    .note{background:#eef2ff;border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;font-size:12px;color:#374151;margin-top:6px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .chip{padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:12px}
+    .chip.active{background:#111;color:#fff;border-color:#111}
+    .thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;border:1px solid #eee}
+    .skeleton{height:44px;border-radius:12px;background:linear-gradient(90deg,#f3f4f6, #e5e7eb, #f3f4f6);background-size:200% 100%;animation:sh 1.2s infinite}
+    @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);font-size:14px;z-index:5;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+    .mini{font-size:11px;color:var(--muted)}
+    .danger-text{color:var(--danger);font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sticky">
+      <div class="title">Admin Catalog — SasyaNova</div>
+      <div class="sub">
+        Admin sets <b>MRP / Price / Image per pincode</b>. Annachis update <b>stock only</b> in their dashboard.
+        <span class="badge">Admin-only</span>
+      </div>
+      <div class="note">
+        <b>Fan-out:</b> Upserts <b>replicate/update the item across <u>all Annachis in that pincode</u></b> (identity per Annachi:
+        <span class="mono">owner_id + name + category + pincode</span>).
+        <div class="mini" style="margin-top:4px">
+          By default, saving updates MRP/Price/Image only. To also overwrite stock for all Annachis, explicitly tick
+          <b>“Apply stock fan-out”</b>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Token & Filters -->
+    <div class="card">
+      <div class="toolbar">
+        <div class="grow">
+          <label>Admin Token (X-Admin-Token)</label>
+          <input id="adminToken" placeholder="change-me-admin-token" />
+        </div>
+        <div style="min-width:160px">
+          <label>Pincode</label>
+          <input id="filterPincode" maxlength="6" placeholder="e.g. 600001" />
+        </div>
+        <div class="grow">
+          <label>Search (name)</label>
+          <input id="searchName" placeholder="Search item name…" />
+        </div>
+        <div>
+          <button class="btn" id="btnLoad">Load Catalog</button>
+        </div>
+        <div class="right">
+          <button class="btn secondary" id="btnExport">Export JSON</button>
+        </div>
+      </div>
+
+      <div class="chips" id="chipBar">
+        <div class="chip active" data-cat="all">All</div>
+        <div class="chip" data-cat="cereals">Cereals</div>
+        <div class="chip" data-cat="fruits">Fruits</div>
+        <div class="chip" data-cat="vegetables">Vegetables</div>
+      </div>
+
+      <div id="loadMsg" class="hint" style="margin-top:8px"></div>
+
+      <div style="overflow:auto">
+        <table id="tbl">
+          <thead>
+            <tr>
+              <th style="width:52px">IMG</th>
+              <th style="min-width:180px">Name</th>
+              <th>Category</th>
+              <th>MRP</th>
+              <th>Price</th>
+              <th>Stock</th>
+              <th>Pincode</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <!-- skeleton rows -->
+            <tr class="sk" style="display:none"><td colspan="8"><div class="skeleton"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Upsert (Add/Edit Fan-out) -->
+    <div class="grid grid-2" style="margin-top:16px">
+      <div class="card">
+        <div class="row">
+          <div style="flex:1;min-width:220px">
+            <label>Pincode</label>
+            <input id="uPin" maxlength="6" placeholder="600001" />
+            <div class="hint" style="margin-top:6px">
+              This will <b>replicate/update</b> the item to <u>all Annachis in this pincode</u>.
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-3" style="margin-top:10px">
+          <div>
+            <label>Item Name</label>
+            <input id="uName" placeholder="Tomato (kg)" />
+          </div>
+          <div>
+            <label>Category</label>
+            <select id="uCat">
+              <option value="cereals">Cereals</option>
+              <option value="fruits">Fruits</option>
+              <option value="vegetables">Vegetables</option>
+            </select>
+          </div>
+          <div>
+            <label>Image URL (optional)</label>
+            <input id="uImg" placeholder="https://…" />
+          </div>
+        </div>
+        <div class="grid grid-3" style="margin-top:10px">
+          <div>
+            <label>MRP</label>
+            <input id="uMRP" type="number" step="0.01" placeholder="40.00" />
+          </div>
+          <div>
+            <label>Price (≤ MRP)</label>
+            <input id="uPrice" type="number" step="0.01" placeholder="32.00" />
+          </div>
+          <div>
+            <label>Seed Stock (optional)</label>
+            <input id="uStock" type="number" step="1" placeholder="100" />
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="uApplyStock" />
+            <span>Apply stock fan-out (overwrite stock for all Annachis in this pin)</span>
+          </label>
+        </div>
+        <div class="row" style="margin-top:12px;align-items:center">
+          <button class="btn ok" id="btnUpsert">Upsert Item</button>
+          <div id="upsertMsg" class="hint"></div>
+        </div>
+        <div class="hint" style="margin-top:6px">
+          Identity key: <b>(name + category + pincode)</b>. Re-upsert updates MRP/Price/Image. Stock overwrites only if you tick “Apply stock fan-out”.
+        </div>
+      </div>
+
+      <!-- Bulk Upsert -->
+      <div class="card">
+        <div class="row">
+          <div style="flex:1;min-width:220px">
+            <label>Pincode</label>
+            <input id="bPin" maxlength="6" placeholder="600001" />
+            <div class="hint" style="margin-top:6px">
+              Bulk upsert replicates <b>each item</b> to all Annachis in this pincode.
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <label>Bulk Items JSON (array of objects)</label>
+          <textarea id="bJson" rows="8" class="mono" placeholder='[
+  {"name":"Rice (Raw)","category":"cereals","mrp":60,"price":54,"stock":50,"image_url":""},
+  {"name":"Tomato (kg)","category":"vegetables","mrp":40,"price":32,"stock":100}
+]'></textarea>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="bApplyStock" />
+            <span>Apply stock fan-out for items that include <span class="mono">stock</span></span>
+          </label>
+        </div>
+        <div class="row" style="margin-top:12px;align-items:center">
+          <button class="btn warn" id="btnBulk">Bulk Upsert</button>
+          <div id="bulkMsg" class="hint"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Note: <b>Admin controls catalog & prices per pincode.</b> Annachi dashboards only change <b>stock</b>; price is locked to admin catalog.
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const el = id => document.getElementById(id);
+    const $tbl = el('tbody');
+    const $loadMsg = el('loadMsg');
+    const $upsertMsg = el('upsertMsg');
+    const $bulkMsg = el('bulkMsg');
+    const $toast = el('toast');
+
+    // ---------- helpers ----------
+    function catPill(cat){
+      if(cat==='cereals') return '<span class="pill c">Cereals</span>';
+      if(cat==='fruits')  return '<span class="pill f">Fruits</span>';
+      return '<span class="pill v">Vegetables</span>';
+    }
+    function token(){
+      return el('adminToken').value.trim() || 'change-me-admin-token';
+    }
+    function escapeHtml(s=''){
+      return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function toast(msg, ok=true){
+      $toast.textContent = msg;
+      $toast.style.background = ok ? '#111' : 'var(--danger)';
+      $toast.classList.add('show');
+      setTimeout(()=> $toast.classList.remove('show'), 1600);
+    }
+    function saveToken(){
+      try{ localStorage.setItem('ADMIN_TOKEN', el('adminToken').value.trim()); }catch(e){}
+    }
+    function loadToken(){
+      try{
+        const t = localStorage.getItem('ADMIN_TOKEN');
+        if(t) el('adminToken').value = t;
+      }catch(e){}
+    }
+
+    // Disable/enable buttons safely (prevents double submits)
+    function setBusy(btn, busy, labelBusy='Saving…'){
+      if(!btn) return;
+      if(busy){
+        btn.dataset.prev = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = labelBusy;
+      }else{
+        btn.disabled = false;
+        if(btn.dataset.prev){ btn.textContent = btn.dataset.prev; delete btn.dataset.prev; }
+      }
+    }
+
+    // ---------- filters & de-dup ----------
+    let _rawRows = [];     // as returned from API
+    let _rows = [];        // de-duplicated
+    let _catFilter = 'all';
+
+    // dedupe by (name|category|pincode) keep latest id
+    function dedupeRows(arr){
+      const map = new Map();
+      for(const r of arr){
+        const key = `${String(r.name||'').trim().toLowerCase()}|${String(r.category||'').toLowerCase()}|${String(r.pincode||'').trim()}`;
+        const prev = map.get(key);
+        if(!prev || Number(r.id) > Number(prev.id)){
+          map.set(key, r);
+        }
+      }
+      return { list: Array.from(map.values()), deduped: arr.length - map.size };
+    }
+
+    function applyFilters(){
+      const nameQ = (el('searchName').value || '').toLowerCase().trim();
+      const pinQ = (el('filterPincode').value || '').trim();
+      const cat = _catFilter;
+
+      const rows = _rows.filter(r => {
+        if(pinQ && String(r.pincode) !== pinQ) return false;
+        if(cat !== 'all' && r.category !== cat) return false;
+        if(nameQ && !String(r.name || '').toLowerCase().includes(nameQ)) return false;
+        return true;
+      });
+      renderRows(rows);
+      const dedupNote = (_rawRows.length - _rows.length) > 0 ? ` • deduped ${_rawRows.length - _rows.length}` : '';
+      $loadMsg.textContent = `${rows.length} of ${_rows.length} items shown${dedupNote}.`;
+    }
+
+    // ---------- fetch list ----------
+    async function apiList(){
+      $loadMsg.textContent = 'Loading…';
+      showSkeleton(true);
+      const pincode = el('filterPincode').value.trim();
+      const params = new URLSearchParams();
+      if(pincode) params.set('pincode', pincode);
+
+      const url = params.toString() ? `/admin/catalog/list?${params.toString()}` : '/admin/catalog/list';
+      const res = await fetch(url, { headers: { 'X-Admin-Token': token() }});
+
+      showSkeleton(false);
+      if(!res.ok){
+        $loadMsg.textContent = res.status===403 ? 'Unauthorized: Check X-Admin-Token' : 'Failed to load catalog.';
+        $tbl.innerHTML = '';
+        _rawRows = []; _rows = [];
+        return;
+      }
+      const data = await res.json();
+      _rawRows = Array.isArray(data) ? data : [];
+      const {list, deduped} = dedupeRows(_rawRows);
+      _rows = list;
+      window.__lastData = _rows;        // used by saveRow/lookups
+      window.__rawData = _rawRows;      // for debugging if needed
+      applyFilters();
+      if(deduped>0){
+        // surface a subtle toast for awareness
+        toast(`Deduped ${deduped} duplicate row(s)`, true);
+      }
+    }
+
+    function showSkeleton(on){
+      const sk = document.querySelectorAll('.sk');
+      sk.forEach(n => n.style.display = on ? '' : 'none');
+    }
+
+    // ---------- renderer ----------
+    function renderRows(rows){
+      if(!rows.length){
+        $tbl.innerHTML = `<tr><td colspan="8" class="muted">No items match your filters.</td></tr>`;
+        return;
+      }
+      $tbl.innerHTML = rows.map(r => {
+        const img = r.image_url ? `<img class="thumb" src="${escapeHtml(r.image_url)}" alt="" onerror="this.src='';this.style.background='#eee'"/>`
+                                : `<div class="thumb" style="display:grid;place-items:center;background:#f3f4f6">—</div>`;
+        return `
+        <tr data-id="${r.id}">
+          <td>${img}</td>
+          <td>
+            <div class="mono" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</div>
+            <div class="mini muted">#${r.id}</div>
+          </td>
+          <td>${catPill(r.category)}</td>
+          <td><input type="number" step="0.01" value="${r.mrp}" data-k="mrp" /></td>
+          <td><input type="number" step="0.01" value="${r.price}" data-k="price" /></td>
+          <td>
+            <input type="number" step="1" value="${r.stock}" data-k="stock" />
+            <div class="mini">
+              <label style="display:flex;gap:6px;align-items:center">
+                <input type="checkbox" data-k="apply_stock" />
+                <span>Apply stock fan-out</span>
+              </label>
+            </div>
+          </td>
+          <td><input class="mono" value="${r.pincode}" disabled /></td>
+          <td>
+            <div class="row">
+              <button class="btn ok" onclick="saveRow(${r.id}, this)">Save</button>
+              <button class="btn ghost" onclick="editImage(${r.id})">Image</button>
+              <button class="btn danger" onclick="delRow(${r.id}, this)">Delete</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ---------- row actions ----------
+    async function saveRow(id, btnEl){
+      const tr = document.querySelector(`tr[data-id="${id}"]`);
+      if(!tr){ alert('Row not found'); return; }
+
+      const mrp = parseFloat(tr.querySelector('input[data-k="mrp"]').value);
+      const price = parseFloat(tr.querySelector('input[data-k="price"]').value);
+      const stock = parseInt(tr.querySelector('input[data-k="stock"]').value,10);
+      const applyStock = tr.querySelector('input[data-k="apply_stock"]').checked;
+
+      const rec = (window.__lastData || []).find(x => Number(x.id) === Number(id));
+      if(!rec){ alert('Record not found in cache'); return; }
+
+      if(isNaN(mrp) || isNaN(price)){ alert('Invalid MRP/Price'); return; }
+      if(price > mrp){ alert('Price cannot exceed MRP'); return; }
+      if(applyStock && (isNaN(stock) || stock < 0)){ alert('Stock must be 0 or more'); return; }
+
+      const imgUrl = prompt('Image URL (leave blank to keep same; type "-" to clear):', rec.image_url || '');
+      let image_url = null;
+      if(imgUrl !== null){
+        const trimmed = imgUrl.trim();
+        if(trimmed === '-') image_url = null;
+        else if(trimmed.length) image_url = trimmed;
+        else image_url = rec.image_url || null;
+      } else {
+        image_url = rec.image_url || null;
+      }
+
+      // Confirm
+      let confirmText = `This will update MRP/Price${image_url!==rec.image_url ? ' & Image' : ''} for "${rec.name}" (${rec.category}) across ALL Annachis in pincode ${rec.pincode}.`;
+      if(applyStock) confirmText += `\n\n⚠️ You also chose to fan-out STOCK (${stock}) to all Annachis.`;
+      confirmText += `\n\nContinue?`;
+      if(!confirm(confirmText)) return;
+
+      const payload = {
+        product_id: rec.id,                  // 👈 helps backend target existing rows (safe if ignored)
+        name: rec.name,
+        category: rec.category,
+        pincode: rec.pincode,
+        mrp, price,
+        image_url
+      };
+      if(applyStock) payload.stock = stock;
+
+      try{
+        setBusy(btnEl, true, 'Saving…');
+        const res = await fetch('/admin/catalog/upsert', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'X-Admin-Token': token() },
+          body: JSON.stringify(payload)
+        });
+
+        const j = await res.json().catch(()=>({}));
+        if(!res.ok){
+          alert('Save failed: ' + (j.error || res.statusText));
+          return;
+        }
+        toast(`Updated ✓ (affected Annachis: ${j.affected_annachis ?? '—'})`);
+        await apiList(); // reload + de-dup
+      }finally{
+        setBusy(btnEl, false);
+      }
+    }
+
+    function editImage(id){
+      const rec = (window.__lastData || []).find(x => Number(x.id) === Number(id));
+      if(!rec) return;
+      const current = rec.image_url || '';
+      const newUrl = prompt('New Image URL (leave blank to keep, type "-" to clear):', current);
+      if(newUrl === null) return;
+      const tr = document.querySelector(`tr[data-id="${id}"]`);
+      if(!tr) return;
+      const imgEl = tr.querySelector('img.thumb');
+      if(imgEl){
+        if(newUrl.trim() === '-') { imgEl.src=''; imgEl.style.background='#eee'; }
+        else if(newUrl.trim().length){ imgEl.src = newUrl.trim(); imgEl.style.background='transparent'; }
+      }
+    }
+
+    async function delRow(id, btnEl){
+      if(!confirm('Delete this single product row? (Only removes one owner row; other Annachis remain)')) return;
+      try{
+        setBusy(btnEl, true, 'Deleting…');
+        const res = await fetch('/admin/catalog/delete', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'X-Admin-Token': token() },
+          body: JSON.stringify({ product_id: id })
+        });
+        const j = await res.json().catch(()=>({}));
+        if(!res.ok){
+          alert('Delete failed: ' + (j.error || res.statusText));
+          return;
+        }
+        toast('Deleted ✓');
+        await apiList();
+      }finally{
+        setBusy(btnEl, false);
+      }
+    }
+
+    // ---------- upsert single ----------
+    async function upsertOne(){
+      $upsertMsg.textContent = '';
+      const pincode = el('uPin').value.trim();
+      const name = el('uName').value.trim();
+      const category = el('uCat').value;
+      const mrp = parseFloat(el('uMRP').value);
+      const price = parseFloat(el('uPrice').value);
+      const stockVal = el('uStock').value.trim();
+      const applyStock = el('uApplyStock').checked;
+      const image_url = el('uImg').value.trim();
+
+      if(!/^\d{6}$/.test(pincode)){ $upsertMsg.textContent = 'Valid 6-digit pincode is required.'; return; }
+      if(!name){ $upsertMsg.textContent = 'Item name required.'; return; }
+      if(!['cereals','fruits','vegetables'].includes(category)){ $upsertMsg.textContent = 'Invalid category'; return; }
+      if(isNaN(mrp) || isNaN(price)){ $upsertMsg.textContent = 'Invalid MRP/Price'; return; }
+      if(price > mrp){ $upsertMsg.textContent = 'Price cannot exceed MRP'; return; }
+
+      let body = { name: name.trim(), category, pincode, mrp, price, image_url: image_url || null };
+
+      if(applyStock){
+        const stock = stockVal==='' ? null : parseInt(stockVal, 10);
+        if(stock===null || isNaN(stock) || stock < 0){ $upsertMsg.textContent = 'When applying stock fan-out, provide stock ≥ 0.'; return; }
+        body.stock = stock;
+      }
+
+      const btn = el('btnUpsert');
+      try{
+        setBusy(btn, true, 'Saving…');
+        const res = await fetch('/admin/catalog/upsert', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'X-Admin-Token': token() },
+          body: JSON.stringify(body)
+        });
+        const j = await res.json().catch(()=>({}));
+        if(res.ok){
+          $upsertMsg.textContent = `Saved ✓ (affected Annachis: ${j.affected_annachis ?? '—'})`;
+          toast('Upserted ✓');
+          apiList();
+        }else{
+          $upsertMsg.textContent = `Failed: ${j.error || res.statusText}`;
+        }
+      }finally{
+        setBusy(btn, false);
+      }
+    }
+
+    // ---------- bulk upsert ----------
+    async function bulkUpsert(){
+      $bulkMsg.textContent = '';
+      const pincode = el('bPin').value.trim();
+      const applyStock = el('bApplyStock').checked;
+      if(!/^\d{6}$/.test(pincode)){ $bulkMsg.textContent = 'Valid 6-digit pincode is required.'; return; }
+
+      let items = [];
+      try{
+        items = JSON.parse(el('bJson').value);
+        if(!Array.isArray(items) || items.length===0) throw new Error('items must be a non-empty array');
+      }catch(e){
+        $bulkMsg.textContent = 'Invalid JSON: ' + e.message;
+        return;
+      }
+
+      // validate each item
+      for(const it of items){
+        if(!it.name || !['cereals','fruits','vegetables'].includes((it.category||'').toLowerCase())){
+          $bulkMsg.textContent = 'Each item needs a valid name and category (cereals/fruits/vegetables).';
+          return;
+        }
+        if(typeof it.mrp !== 'number' || typeof it.price !== 'number' || it.price > it.mrp){
+          $bulkMsg.textContent = 'Each item needs numeric mrp/price and price ≤ mrp.';
+          return;
+        }
+        // if admin did NOT tick applyStock, strip stock so it won't overwrite
+        if(!applyStock && 'stock' in it) delete it.stock;
+        if(applyStock && it.stock!=null && (typeof it.stock !== 'number' || it.stock < 0)){
+          $bulkMsg.textContent = 'Stock must be ≥ 0 when provided.';
+          return;
+        }
+      }
+
+      const btn = el('btnBulk');
+      try{
+        setBusy(btn, true, 'Saving…');
+        const res = await fetch('/admin/catalog/bulk_upsert', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'X-Admin-Token': token() },
+          body: JSON.stringify({ pincode, items })
+        });
+        const j = await res.json().catch(()=>({}));
+        if(res.ok){
+          const fails = (j.results||[]).filter(r=>!r.ok);
+          const counts = (j.results||[]).filter(r=>r.ok).reduce((a,r)=>a+(r.count||0),0);
+          $bulkMsg.textContent = fails.length
+            ? `Completed with ${fails.length} errors; replicated rows across Annachis: ${counts}`
+            : `All items saved ✓; replicated rows across Annachis: ${counts}`;
+          toast('Bulk upsert finished ✓');
+          apiList();
+        }else{
+          $bulkMsg.textContent = 'Failed: ' + (j.error || res.statusText);
+        }
+      }finally{
+        setBusy(btn, false);
+      }
+    }
+
+    function exportJson(){
+      const data = _rows || [];
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `sasyanova-catalog-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    // ---------- events ----------
+    document.addEventListener('DOMContentLoaded', ()=>{
+      loadToken();
+      if(!el('adminToken').value) el('adminToken').value = 'change-me-admin-token';
+    });
+
+    el('btnLoad').addEventListener('click', ()=>{ saveToken(); apiList(); });
+    el('btnUpsert').addEventListener('click', ()=>{ saveToken(); upsertOne(); });
+    el('btnBulk').addEventListener('click', ()=>{ saveToken(); bulkUpsert(); });
+    el('btnExport').addEventListener('click', exportJson);
+    el('adminToken').addEventListener('change', saveToken);
+    el('searchName').addEventListener('input', applyFilters);
+    el('filterPincode').addEventListener('input', applyFilters);
+
+    document.getElementById('chipBar').addEventListener('click', (e)=>{
+      const btn = e.target.closest('.chip'); if(!btn) return;
+      document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+      btn.classList.add('active');
+      _catFilter = btn.dataset.cat;
+      applyFilters();
+    });
+
+    // Enter key triggers load
+    ['searchName', 'filterPincode'].forEach(id=>{
+      el(id).addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ saveToken(); apiList(); }});
+    });
+
+    // auto-load first time
+    setTimeout(()=>{ apiList(); }, 60);
+  </script>
+</body>
+</html>
