@@ -9,6 +9,7 @@ import math
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+import os
 
 # ✅ Create the db instance only ONCE (no app binding yet)
 db = SQLAlchemy()
@@ -36,22 +37,22 @@ def create_app():
     # ✅ Initialize SQLAlchemy only once here
     db.init_app(app)
 
-    # ✅ Import models AFTER db.init_app()
-    with app.app_context():
-        from models import *   # your models file
-        db.create_all()
-
     return app
+
 
 # ✅ This is the only app object Gunicorn should see
 app = create_app()
 
+# ✅ Import models AFTER app is created (allowed at module level)
+from models import *
+with app.app_context():
+    db.create_all()
+
 # ✅ DO NOT reinitialize db again here
 from flask_login import LoginManager
-
-
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
+
 
 # 🔒 FIXED CATALOG CATEGORIES (no free-form)
 FIXED_CATS = {"cereals", "fruits", "vegetables"}
