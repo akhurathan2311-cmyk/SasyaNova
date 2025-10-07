@@ -7,7 +7,7 @@ import json
 from queue import SimpleQueue
 import math
 import sqlite3
-from sqlalchemy 
+from sqlalchemy import or_   # ✅ fixed — specify what to import
 
 import os
 from flask import Flask
