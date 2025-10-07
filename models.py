@@ -9,6 +9,7 @@ from app import db
 # ---------- USER ----------
 class User(UserMixin, db.Model):
     __tablename__ = "user"
+    __table_args__ = {'extend_existing': True}   # ✅ prevents "already defined" error
 
     id = db.Column(db.Integer, primary_key=True)
     # /register in app.py doesn't set name -> keep nullable
@@ -39,6 +40,7 @@ class User(UserMixin, db.Model):
 # ---------- PRODUCT ----------
 class Product(db.Model):
     __tablename__ = "product"
+    __table_args__ = {'extend_existing': True}   # ✅ safe import reload
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
@@ -66,6 +68,7 @@ class Product(db.Model):
 # ---------- ADDRESS ----------
 class Address(db.Model):
     __tablename__ = "address"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
@@ -76,9 +79,10 @@ class Address(db.Model):
     phone = db.Column(db.String(10))
 
 
-# ---------- ORDER BUNDLE (optional; kept, no hard link to Order) ----------
+# ---------- ORDER BUNDLE ----------
 class OrderBundle(db.Model):
     __tablename__ = "order_bundle"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     consumer_id = db.Column(db.Integer, db.ForeignKey("user.id"))         # who placed it
@@ -97,6 +101,7 @@ class OrderBundle(db.Model):
 # ---------- ORDER ----------
 class Order(db.Model):
     __tablename__ = "order"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     consumer_id = db.Column(db.Integer, db.ForeignKey("user.id"))
