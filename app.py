@@ -9,21 +9,19 @@ import math
 import sqlite3
 from sqlalchemy import or_
 
-
 import os
+from flask import Flask
 
-# ---------- APP SETUP ----------
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "super-secret")
 
-# Use a disk dir that works locally AND on Render
-DB_DIR = os.getenv("DB_DIR", "/var/data" if os.getenv("RENDER") else ".")
-os.makedirs(DB_DIR, exist_ok=True)  # ✅ ensure folder exists
+# --- Use a writable directory on Render Free Plan ---
+DB_DIR = "/opt/render/project/src/data" if os.getenv("RENDER") else "."
+os.makedirs(DB_DIR, exist_ok=True)
 
 DB_PATH = os.path.join(DB_DIR, "sasyanova.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.abspath(DB_PATH)}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
