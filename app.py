@@ -6,37 +6,50 @@ from datetime import datetime
 import json
 from queue import SimpleQueue
 import math
-import sqlite3
-from sqlalchemy import or_   # ✅ fixed — specify what to import
-
 import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
-app = Flask(__name__)
+# ✅ Create the db instance only ONCE (no app binding yet)
+db = SQLAlchemy()
 
-# --- DATABASE CONFIG ---
-DATABASE_URL = os.getenv("DATABASE_URL")
+def create_app():
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "super-secret")
 
-if DATABASE_URL:
-    # Handle Render / Supabase / Neon URLs
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
-    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
-else:
-    # Local or Render Free Plan fallback (SQLite)
-    DB_DIR = "/opt/render/project/src/data" if os.getenv("RENDER") else "."
-    os.makedirs(DB_DIR, exist_ok=True)
-    DB_PATH = os.path.join(DB_DIR, "sasyanova.db")
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.abspath(DB_PATH)}"
+    # --- DATABASE CONFIG ---
+    DATABASE_URL = os.getenv("DATABASE_URL")
 
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    if DATABASE_URL:
+        if DATABASE_URL.startswith("postgres://"):
+            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+        app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
+    else:
+        DB_DIR = "/opt/render/project/src/data" if os.getenv("RENDER") else "."
+        os.makedirs(DB_DIR, exist_ok=True)
+        DB_PATH = os.path.join(DB_DIR, "sasyanova.db")
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.abspath(DB_PATH)}"
 
-db = SQLAlchemy(app)
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    # ✅ Initialize SQLAlchemy only once here
+    db.init_app(app)
+
+    # ✅ Import models AFTER db.init_app()
+    with app.app_context():
+        from models import *   # your models file
+        db.create_all()
+
+    return app
+
+# ✅ This is the only app object Gunicorn should see
+app = create_app()
+
+# ✅ DO NOT reinitialize db again here
+from flask_login import LoginManager
 
 
-db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
